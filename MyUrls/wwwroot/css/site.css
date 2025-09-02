@@ -1,22 +1,167 @@
+/* === Base sizing & focus (kept) === */
 html {
-  font-size: 14px;
+    font-size: 14px;
+    position: relative;
+    min-height: 100%;
 }
 
 @media (min-width: 768px) {
-  html {
-    font-size: 16px;
-  }
+    html {
+        font-size: 16px;
+    }
 }
 
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
-}
-
-html {
-  position: relative;
-  min-height: 100%;
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus,
+.form-control:focus, .form-check-input:focus {
+    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
 }
 
 body {
-  margin-bottom: 60px;
+    margin-bottom: 60px;
+}
+
+/* === Design tokens (Light) === */
+:root {
+    --card-border: #e3e3e3;
+    --title-accent: #007bff;
+    --footer-bg: rgba(255,255,255,.9);
+    --footer-text: #333;
+    --badge-asapi-bg: #17a2b8;
+    --badge-directdebit-bg: #28a745;
+    --surface: #ffffff;
+    --text-muted-strong: #6c757d;
+}
+/* === Dark theme overrides === */
+html[data-bs-theme="dark"] {
+    --card-border: #2e2e2e;
+    --title-accent: #6ea8fe;
+    --footer-bg: rgba(30,30,30,.9);
+    --footer-text: #e7e7e7;
+    --badge-asapi-bg: #1390a1;
+    --badge-directdebit-bg: #1f8a3a;
+    --surface: #1b1f22;
+    --text-muted-strong: #adb5bd;
+}
+
+/* === Cards, modals, headings === */
+.card {
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    background-color: var(--surface);
+}
+
+.modal-content {
+    border-radius: 10px;
+}
+
+h4.text-primary {
+    border-bottom: 2px solid var(--title-accent);
+    padding-bottom: 5px;
+    font-size: 1.25rem;
+}
+
+/* === Slim Left Sidebar (desktop ? lg) === */
+#leftSidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 64px;
+    height: 100vh;
+    padding: 12px 10px;
+    background: var(--surface);
+    border-right: 1px solid var(--card-border);
+    z-index: 1090;
+}
+
+    #leftSidebar .btn-icon {
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+    }
+
+        #leftSidebar .btn-icon:hover {
+            transform: translateY(-1px);
+        }
+
+/* Shift content so it doesn't sit under the rail */
+@media (min-width: 992px) {
+    body {
+        padding-left: 72px;
+    }
+}
+
+/* Offcanvas inherits theme */
+html[data-bs-theme="dark"] .offcanvas {
+    background-color: var(--surface);
+    color: inherit;
+}
+
+/* Footer */
+.footer {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: var(--footer-bg);
+    padding: 10px 15px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.2);
+    font-size: .9rem;
+    color: var(--footer-text);
+    text-align: center;
+    z-index: 1000;
+    margin-bottom: 0;
+}
+
+/* Badges */
+.tag-badge {
+    font-size: .7rem;
+    padding: .2em .5em;
+    border-radius: 10px;
+    margin-left: 5px;
+}
+
+.bg-asapi {
+    background-color: var(--badge-asapi-bg);
+    color: #fff;
+}
+
+.bg-directDebit {
+    background-color: var(--badge-directdebit-bg);
+    color: #fff;
+}
+
+/* Title style */
+.custom-title {
+    font-family: Arial, sans-serif;
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: var(--title-accent);
+    text-shadow: 2px 2px 5px rgba(0,0,0,.3);
+    border-bottom: 2px solid var(--title-accent);
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+}
+
+/* Inputs inside cards should inherit background correctly in dark */
+.card .form-control[readonly] {
+    background-color: transparent;
+    color: inherit;
+    border-color: var(--card-border);
+}
+
+/* Mobile hamburger */
+.hamburger-btn {
+    top: 16px;
+    left: 16px;
+    z-index: 1100;
+}
+
+/* Tooltips a bit denser */
+.tooltip .tooltip-inner {
+    padding: .35rem .5rem;
+    font-size: .75rem;
 }
