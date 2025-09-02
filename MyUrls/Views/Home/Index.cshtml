@@ -16,12 +16,19 @@
 </head>
 <body>
 
-    <!-- Mobile hamburger (visible < lg) -->
-    <button class="btn btn-outline-secondary btn-sm position-fixed d-lg-none hamburger-btn"
-            type="button" data-bs-toggle="offcanvas" data-bs-target="#leftMenu"
-            aria-controls="leftMenu" aria-label="Open menu">
-        <i class="bi bi-list"></i>
-    </button>
+<div class="mobile-topbar d-lg-none">
+  <button id="hamburgerBtn"
+          class="btn btn-outline-secondary btn-sm"
+          type="button"
+          data-bs-toggle="offcanvas"
+          data-bs-target="#leftMenu"
+          aria-controls="leftMenu"
+          aria-label="Open menu">
+    <i class="bi bi-list"></i>
+  </button>
+  <!-- اختیاری: تیتر کوتاه -->
+  <!-- <span class="mobile-topbar-title ms-2">Menu</span> -->
+</div>
 
     <!-- Slim Left Sidebar (Desktop >= lg) -->
     <aside id="leftSidebar" class="d-none d-lg-flex flex-column align-items-center gap-3">
@@ -213,6 +220,14 @@
             // Enable tooltips for sidebar icons
             const tipEls = [].slice.call(document.querySelectorAll('#leftSidebar [title]'));
             tipEls.forEach(el => new bootstrap.Tooltip(el));
+        })();
+        (function () {
+            const ham = document.getElementById('hamburgerBtn');
+            const offcanvasEl = document.getElementById('leftMenu');
+            if (ham && offcanvasEl) {
+                offcanvasEl.addEventListener('show.bs.offcanvas', () => ham.classList.add('invisible'));
+                offcanvasEl.addEventListener('hidden.bs.offcanvas', () => ham.classList.remove('invisible'));
+            }
         })();
     </script>
 </body>
