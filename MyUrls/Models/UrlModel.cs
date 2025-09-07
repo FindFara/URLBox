@@ -1,4 +1,4 @@
-﻿namespace MyUrls.Models
+﻿namespace URLBox.Models
 {
 	public class UrlModel
 	{

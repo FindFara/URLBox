@@ -4,11 +4,11 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using MyUrls.Context;
+using URLBox.Context;
 
 #nullable disable
 
-namespace MyUrls.Migrations
+namespace URLBox.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
     [Migration("20241113062625_sort")]
@@ -24,7 +24,7 @@ namespace MyUrls.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("MyUrls.Models.UrlModel", b =>
+            modelBuilder.Entity("URLBox.Models.UrlModel", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()

@@ -1,4 +1,4 @@
-﻿namespace MyUrls;
+﻿namespace URLBox;
 public enum EnvironmentType
 {
     Dev,

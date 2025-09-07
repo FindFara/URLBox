@@ -1,10 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using MyUrls.Context;
-using MyUrls.Models;
+using URLBox.Context;
+using URLBox.Models;
 using System.Diagnostics;
 
-namespace MyUrls.Controllers
+namespace URLBox.Controllers
 {
 	public class HomeController : Controller
 	{

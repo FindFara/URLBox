@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 
-namespace MyUrls.Controllers
+namespace URLBox.Controllers
 {
     public class DebitController : Controller
     {

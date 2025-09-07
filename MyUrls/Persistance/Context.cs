@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using MyUrls.Models;
+using URLBox.Models;
 
-namespace MyUrls.Context
+namespace URLBox.Context
 {
     public class ApplicationDbContext : DbContext
     {

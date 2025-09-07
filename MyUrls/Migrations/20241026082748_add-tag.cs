@@ -2,7 +2,7 @@
 
 #nullable disable
 
-namespace MyUrls.Migrations
+namespace URLBox.Migrations
 {
     /// <inheritdoc />
     public partial class addtag : Migration

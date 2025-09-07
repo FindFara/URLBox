@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using MyUrls.Context;
+using URLBox.Context;
 
 var builder = WebApplication.CreateBuilder(args);
 
