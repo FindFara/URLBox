@@ -1,8 +1,10 @@
 ﻿@model List<URLBox.Models.UrlModel>
 @using URLBox.Models
 @{
-    Layout = null; /* Remove this line if you already use a shared _Layout */
+    // Not using the shared _Layout here since the original page explicitly set Layout = null.
+    Layout = null;
 }
+
 <!doctype html>
 <html lang="en" data-bs-theme="light">
 <head>
@@ -10,33 +12,41 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>URL Box</title>
     <link rel="stylesheet" href="~/css/site.css" />
-    <!-- Bootstrap 5.3 + Icons (remove if already included in _Layout) -->
+    <!-- Bootstrap 5.3 + Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+    <!-- Inline styles for small project sidebar on desktop -->
+    <style>
+
+    </style>
 </head>
 <body>
+    <!-- Top bar for mobile -->
+    <div class="mobile-topbar d-lg-none">
+        <button id="hamburgerBtn"
+                class="btn btn-outline-secondary btn-sm"
+                type="button"
+                data-bs-toggle="offcanvas"
+                data-bs-target="#leftMenu"
+                aria-controls="leftMenu"
+                aria-label="Open menu">
+            <i class="bi bi-list"></i>
+        </button>
+    </div>
 
-<div class="mobile-topbar d-lg-none">
-  <button id="hamburgerBtn"
-          class="btn btn-outline-secondary btn-sm"
-          type="button"
-          data-bs-toggle="offcanvas"
-          data-bs-target="#leftMenu"
-          aria-controls="leftMenu"
-          aria-label="Open menu">
-    <i class="bi bi-list"></i>
-  </button>
-  <!-- اختیاری: تیتر کوتاه -->
-  <!-- <span class="mobile-topbar-title ms-2">Menu</span> -->
-</div>
-
-    <!-- Slim Left Sidebar (Desktop >= lg) -->
+    <!-- Slim Left Sidebar (Desktop ≥ lg) -->
     <aside id="leftSidebar" class="d-none d-lg-flex flex-column align-items-center gap-3">
         <!-- Add -->
         <button type="button" class="btn btn-primary btn-icon"
                 data-bs-toggle="modal" data-bs-target="#addUrlModal"
                 data-bs-placement="right" title="Add">
             <i class="bi bi-plus-lg"></i>
+        </button>
+        <!-- Projects (filter) -->
+        <button id="projectToggleDesktop" type="button" class="btn btn-outline-secondary btn-icon"
+                data-bs-placement="right" title="">
+            <i class="bi bi-tag"></i>
         </button>
         <!-- Dark Mode -->
         <button id="themeToggleSidebar" type="button" class="btn btn-outline-secondary btn-icon"
@@ -45,7 +55,7 @@
         </button>
         <!-- GitHub -->
         <a href="https://github.com/FindFara/URLBox" target="_blank"
-           class="btn btn-dark btn-icon" data-bs-placement="right" title="GitHub repo">ٍ
+           class="btn btn-dark btn-icon" data-bs-placement="right" title="GitHub repo">
             <i class="bi bi-github"></i>
         </a>
     </aside>
@@ -58,8 +68,15 @@
         </div>
         <div class="offcanvas-body d-flex flex-column gap-3">
             <button type="button" class="btn btn-primary w-100"
-                    data-bs-toggle="modal" data-bs-target="#addUrlModal" data-bs-dismiss="offcanvas">
+                    data-bs-toggle="modal" data-bs-target="#addUrlModal"
+                    data-bs-dismiss="offcanvas">
                 <i class="bi bi-plus-lg me-1"></i> Add
+            </button>
+            <!-- Projects (filter) -->
+            <button type="button" class="btn btn-outline-secondary w-100"
+                    data-bs-toggle="offcanvas" data-bs-target="#projectMenu"
+                    data-bs-dismiss="offcanvas">
+                <i class="bi bi-tag me-1"></i> 
             </button>
             <button id="themeToggleMobile" type="button" class="btn btn-outline-secondary w-100">
                 <i id="themeIconMobile" class="bi bi-moon-fill me-1"></i> Dark mode
@@ -68,6 +85,26 @@
                 <i class="bi bi-github me-1"></i> GitHub
             </a>
         </div>
+    </div>
+
+    <!-- Offcanvas Menu for Projects -->
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="projectMenu" aria-labelledby="projectMenuLabel">
+        <div class="offcanvas-header">
+            <h5 id="projectMenuLabel" class="mb-0">Projects</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body d-flex flex-column gap-3">
+            <button type="button" class="btn btn-outline-primary w-100" onclick="filterByProject('directdebit')" data-bs-dismiss="offcanvas">Direct Debit</button>
+            <button type="button" class="btn btn-outline-primary w-100" onclick="filterByProject('asapay')" data-bs-dismiss="offcanvas">AsaPay</button>
+            <button type="button" class="btn btn-secondary w-100" onclick="filterByProject('all')" data-bs-dismiss="offcanvas">Show All</button>
+        </div>
+    </div>
+
+    <!-- Project Sidebar (Desktop) -->
+    <div id="projectSidebar" class="flex-column gap-2">
+        <button type="button" class="btn btn-outline-primary btn-sm" onclick="applyProjectFilter('directdebit')">Direct Debit</button>
+        <button type="button" class="btn btn-outline-primary btn-sm" onclick="applyProjectFilter('asapay')">AsaPay</button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="applyProjectFilter('all')">Show All</button>
     </div>
 
     <!-- Modal for Adding URL -->
@@ -142,7 +179,7 @@
                     <h4 class="text-primary">@envType</h4>
                     @foreach (var url in Model.Where(u => u.Environment == envType))
                     {
-                        <div class="card p-2 mb-3 shadow-sm">
+                        <div class="card p-2 mb-3 shadow-sm" data-project='@((url.Tag == "آساپی") ? "asapay" : "directdebit")'>
                             <h6 class="mb-1" style="color:var(--text-muted-strong);">
                                 @url.Description
                                 <span class="badge tag-badge @(url.Tag == "آساپی" ? "bg-asapi" : "bg-directDebit")">@url.Tag</span>
@@ -168,7 +205,7 @@
         <h6>Fara.Co</h6>
     </footer>
 
-    <!-- Bootstrap JS (remove if already included) -->
+    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
@@ -221,6 +258,7 @@
             const tipEls = [].slice.call(document.querySelectorAll('#leftSidebar [title]'));
             tipEls.forEach(el => new bootstrap.Tooltip(el));
         })();
+        // Hide hamburger button when offcanvas is open on mobile
         (function () {
             const ham = document.getElementById('hamburgerBtn');
             const offcanvasEl = document.getElementById('leftMenu');
@@ -228,6 +266,63 @@
                 offcanvasEl.addEventListener('show.bs.offcanvas', () => ham.classList.add('invisible'));
                 offcanvasEl.addEventListener('hidden.bs.offcanvas', () => ham.classList.remove('invisible'));
             }
+        })();
+        // Filtering logic for project selection
+        (function () {
+            // Base filter function reused by both mobile and desktop
+            window.filterByProject = function (project) {
+                const cards = document.querySelectorAll('.card[data-project]');
+                cards.forEach(card => {
+                    const proj = card.getAttribute('data-project');
+                    if (project === 'all' || project === proj) {
+                        card.style.display = '';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            };
+            // Desktop-specific wrapper that also hides the small sidebar after selection
+            window.applyProjectFilter = function (project) {
+                filterByProject(project);
+                const sidebar = document.getElementById('projectSidebar');
+                if (sidebar) sidebar.classList.remove('show');
+            };
+            // Toggle function for the small desktop sidebar
+            window.toggleProjectSidebar = function () {
+                const sidebar = document.getElementById('projectSidebar');
+                if (sidebar) sidebar.classList.toggle('show');
+            };
+
+            // Show project sidebar on hover over the project button on desktop
+            (function() {
+                const projectBtn = document.getElementById('projectToggleDesktop');
+                const sidebarEl = document.getElementById('projectSidebar');
+                if (projectBtn && sidebarEl) {
+                    // Show the sidebar when hovering over the button
+                    projectBtn.addEventListener('mouseenter', () => {
+                        // Position the sidebar next to the button vertically aligned
+                        const rect = projectBtn.getBoundingClientRect();
+                        // Set top equal to button's top and left equal to button's right edge
+                        sidebarEl.style.top = rect.top + 'px';
+                        sidebarEl.style.left = rect.right + 'px';
+                        sidebarEl.classList.add('show');
+                    });
+                    // Hide the sidebar when mouse leaves the button (with small delay)
+                    projectBtn.addEventListener('mouseleave', () => {
+                        setTimeout(() => {
+                            if (!sidebarEl.matches(':hover') && !projectBtn.matches(':hover')) {
+                                sidebarEl.classList.remove('show');
+                            }
+                        }, 100);
+                    });
+                    // Hide the sidebar when mouse leaves the sidebar itself, if not hovering the button
+                    sidebarEl.addEventListener('mouseleave', () => {
+                        if (!projectBtn.matches(':hover')) {
+                            sidebarEl.classList.remove('show');
+                        }
+                    });
+                }
+            })();
         })();
     </script>
 </body>
