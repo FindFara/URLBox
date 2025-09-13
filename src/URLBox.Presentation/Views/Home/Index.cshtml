@@ -1,0 +1,328 @@
+﻿@model List<UrlViewModel>
+@{
+    // Not using the shared _Layout here since the original page explicitly set Layout = null.
+    Layout = null;
+}
+
+<!doctype html>
+<html lang="en" data-bs-theme="light">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>URL Box</title>
+    <link rel="stylesheet" href="~/css/site.css" />
+    <!-- Bootstrap 5.3 + Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+    <!-- Inline styles for small project sidebar on desktop -->
+    <style>
+
+    </style>
+</head>
+<body>
+    <!-- Top bar for mobile -->
+    <div class="mobile-topbar d-lg-none">
+        <button id="hamburgerBtn"
+                class="btn btn-outline-secondary btn-sm"
+                type="button"
+                data-bs-toggle="offcanvas"
+                data-bs-target="#leftMenu"
+                aria-controls="leftMenu"
+                aria-label="Open menu">
+            <i class="bi bi-list"></i>
+        </button>
+    </div>
+
+    <!-- Slim Left Sidebar (Desktop ≥ lg) -->
+    <aside id="leftSidebar" class="d-none d-lg-flex flex-column align-items-center gap-3">
+        <!-- Add -->
+        <button type="button" class="btn btn-primary btn-icon"
+                data-bs-toggle="modal" data-bs-target="#addUrlModal"
+                data-bs-placement="right" title="Add">
+            <i class="bi bi-plus-lg"></i>
+        </button>
+        <!-- Projects (filter) -->
+        <button id="projectToggleDesktop" type="button" class="btn btn-outline-secondary btn-icon"
+                data-bs-placement="right" title="">
+            <i class="bi bi-tag"></i>
+        </button>
+        <!-- Dark Mode -->
+        <button id="themeToggleSidebar" type="button" class="btn btn-outline-secondary btn-icon"
+                data-bs-placement="right" title="Dark mode">
+            <i id="themeIconSidebar" class="bi bi-moon-fill"></i>
+        </button>
+        <!-- GitHub -->
+        <a href="https://github.com/FindFara/URLBox" target="_blank"
+           class="btn btn-dark btn-icon" data-bs-placement="right" title="GitHub repo">
+            <i class="bi bi-github"></i>
+        </a>
+    </aside>
+
+    <!-- Offcanvas Menu (Mobile) -->
+    <div class="offcanvas offcanvas-start d-lg-none" tabindex="-1" id="leftMenu" aria-labelledby="leftMenuLabel">
+        <div class="offcanvas-header">
+            <h5 id="leftMenuLabel" class="mb-0">Menu</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body d-flex flex-column gap-3">
+            <button type="button" class="btn btn-primary w-100"
+                    data-bs-toggle="modal" data-bs-target="#addUrlModal"
+                    data-bs-dismiss="offcanvas">
+                <i class="bi bi-plus-lg me-1"></i> Add
+            </button>
+            <!-- Projects (filter) -->
+            <button type="button" class="btn btn-outline-secondary w-100"
+                    data-bs-toggle="offcanvas" data-bs-target="#projectMenu"
+                    data-bs-dismiss="offcanvas">
+                <i class="bi bi-tag me-1"></i> 
+            </button>
+            <button id="themeToggleMobile" type="button" class="btn btn-outline-secondary w-100">
+                <i id="themeIconMobile" class="bi bi-moon-fill me-1"></i> Dark mode
+            </button>
+            <a href="https://github.com/FindFara/URLBox" target="_blank" class="btn btn-dark w-100">
+                <i class="bi bi-github me-1"></i> GitHub
+            </a>
+        </div>
+    </div>
+
+    <!-- Offcanvas Menu for Projects -->
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="projectMenu" aria-labelledby="projectMenuLabel">
+        <div class="offcanvas-header">
+            <h5 id="projectMenuLabel" class="mb-0">Projects</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body d-flex flex-column gap-3">
+            <button type="button" class="btn btn-outline-primary w-100" onclick="filterByProject('directdebit')" data-bs-dismiss="offcanvas">Direct Debit</button>
+            <button type="button" class="btn btn-outline-primary w-100" onclick="filterByProject('asapay')" data-bs-dismiss="offcanvas">AsaPay</button>
+            <button type="button" class="btn btn-secondary w-100" onclick="filterByProject('all')" data-bs-dismiss="offcanvas">Show All</button>
+        </div>
+    </div>
+
+    <!-- Project Sidebar (Desktop) -->
+    <div id="projectSidebar" class="flex-column gap-2">
+        <button type="button" class="btn btn-outline-primary btn-sm" onclick="applyProjectFilter('directdebit')">Direct Debit</button>
+        <button type="button" class="btn btn-outline-primary btn-sm" onclick="applyProjectFilter('asapay')">AsaPay</button>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="applyProjectFilter('all')">Show All</button>
+    </div>
+
+    <!-- Modal for Adding URL -->
+    <div class="modal fade" id="addUrlModal" tabindex="-1" aria-labelledby="addUrlModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content shadow-sm">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addUrlModalLabel">Add New URL</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form method="post" asp-action="AddUrl">
+                        <div class="form-group mb-3">
+                            <label for="url">URL:</label>
+                            <input type="text" class="form-control form-control-sm" id="url" name="url" placeholder="Enter URL" required />
+                        </div>
+                        <div class="form-group mb-3">
+                            <label for="description">Description:</label>
+                            <input type="text" class="form-control form-control-sm" id="description" name="description" placeholder="Enter description" required />
+                        </div>
+                        <div class="form-group mb-3">
+                            <label for="tag">Tag:</label>
+                            <select class="form-control form-control-sm" id="tag" name="tag" required>
+                                <option value="آساپی">آساپی</option>
+                                <option value="دایرکت دبیت">دایرکت دبیت</option>
+                            </select>
+                        </div>
+                        <div class="form-group mb-3">
+                            <label for="environment">Environment:</label>
+                            <select class="form-control form-control-sm" id="environment" name="environment">
+                                <option value="Dev">Dev</option>
+                                <option value="Beta">Beta</option>
+                                <option value="Stage">Stage</option>
+                                <option value="Prod">Prod</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-sm w-100">Add URL</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Delete Confirmation -->
+    <div class="modal fade" id="deleteConfirmationModal" tabindex="-1" aria-labelledby="deleteConfirmationModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content shadow-sm">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteConfirmationModalLabel">Confirm Deletion</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete this URL?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <form id="deleteForm" method="post" asp-action="DeleteUrl">
+                        <input type="hidden" name="id" id="deleteId" />
+                        <button type="submit" class="btn btn-danger btn-sm">Yes</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="container-fluid mt-4">
+        <div class="row mt-4">
+            @foreach (EnvironmentType envType in Enum.GetValues(typeof(EnvironmentType)))
+            {
+                <div class="col-md-6 col-lg-3 mb-4">
+                    <h4 class="text-primary">@envType</h4>
+                    @foreach (var url in Model.Where(u => u.Environment == envType))
+                    {
+                        <div class="card p-2 mb-3 shadow-sm" data-project='@((url.Tag == "آساپی") ? "asapay" : "directdebit")'>
+                            <h6 class="mb-1" style="color:var(--text-muted-strong);">
+                                @url.Description
+                                <span class="badge tag-badge @(url.Tag == "آساپی" ? "bg-asapi" : "bg-directDebit")">@url.Tag</span>
+                            </h6>
+                            <div class="input-group input-group-sm mb-2">
+                                <input type="text" class="form-control" value="@url.UrlValue" readonly />
+                                <button class="btn btn-outline-secondary btn-sm" onclick="copyToClipboard('@url.UrlValue')">Copy</button>
+                            </div>
+                            <div class="btn-group btn-group-sm w-100" role="group">
+                                <a href="@url.UrlValue" target="_blank" class="btn btn-outline-secondary">Open</a>
+                                <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteConfirmationModal" onclick="setDeleteId(@url.Id)">
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    <footer class="footer">
+        <h6>Fara.Co</h6>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // Delete id setter
+        function setDeleteId(id) { document.getElementById('deleteId').value = id; }
+
+        // Copy to clipboard
+        function copyToClipboard(url) {
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(url).then(() => alert('URL copied to clipboard'))
+                    .catch(err => { console.error('Failed to copy: ', err); alert('Failed to copy URL. Please try again!'); });
+            } else {
+                const temp = document.createElement('textarea');
+                temp.value = url; document.body.appendChild(temp); temp.select();
+                try { document.execCommand('copy'); alert('URL copied to clipboard'); }
+                catch (err) { alert('Failed to copy URL. Please try again!'); }
+                document.body.removeChild(temp);
+            }
+        }
+
+        // Theme toggle logic (Sidebar + Mobile), persisted
+        (function () {
+            const KEY = 'preferred-bs-theme';
+            const htmlEl = document.documentElement;
+
+            const toggles = [
+                { btn: document.getElementById('themeToggleSidebar'), icon: document.getElementById('themeIconSidebar') },
+                { btn: document.getElementById('themeToggleMobile'), icon: document.getElementById('themeIconMobile') }
+            ].filter(x => x.btn && x.icon);
+
+            const saved = localStorage.getItem(KEY);
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const initial = saved || (prefersDark ? 'dark' : 'light');
+            setTheme(initial);
+
+            toggles.forEach(({ btn }) => btn.addEventListener('click', () => {
+                const next = htmlEl.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
+                setTheme(next); localStorage.setItem(KEY, next);
+            }));
+
+            function setTheme(mode) {
+                htmlEl.setAttribute('data-bs-theme', mode);
+                toggles.forEach(({ icon }) => {
+                    icon.classList.toggle('bi-moon-fill', mode !== 'dark');
+                    icon.classList.toggle('bi-brightness-high-fill', mode === 'dark');
+                });
+            }
+
+            // Enable tooltips for sidebar icons
+            const tipEls = [].slice.call(document.querySelectorAll('#leftSidebar [title]'));
+            tipEls.forEach(el => new bootstrap.Tooltip(el));
+        })();
+        // Hide hamburger button when offcanvas is open on mobile
+        (function () {
+            const ham = document.getElementById('hamburgerBtn');
+            const offcanvasEl = document.getElementById('leftMenu');
+            if (ham && offcanvasEl) {
+                offcanvasEl.addEventListener('show.bs.offcanvas', () => ham.classList.add('invisible'));
+                offcanvasEl.addEventListener('hidden.bs.offcanvas', () => ham.classList.remove('invisible'));
+            }
+        })();
+        // Filtering logic for project selection
+        (function () {
+            // Base filter function reused by both mobile and desktop
+            window.filterByProject = function (project) {
+                const cards = document.querySelectorAll('.card[data-project]');
+                cards.forEach(card => {
+                    const proj = card.getAttribute('data-project');
+                    if (project === 'all' || project === proj) {
+                        card.style.display = '';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            };
+            // Desktop-specific wrapper that also hides the small sidebar after selection
+            window.applyProjectFilter = function (project) {
+                filterByProject(project);
+                const sidebar = document.getElementById('projectSidebar');
+                if (sidebar) sidebar.classList.remove('show');
+            };
+            // Toggle function for the small desktop sidebar
+            window.toggleProjectSidebar = function () {
+                const sidebar = document.getElementById('projectSidebar');
+                if (sidebar) sidebar.classList.toggle('show');
+            };
+
+            // Show project sidebar on hover over the project button on desktop
+            (function() {
+                const projectBtn = document.getElementById('projectToggleDesktop');
+                const sidebarEl = document.getElementById('projectSidebar');
+                if (projectBtn && sidebarEl) {
+                    // Show the sidebar when hovering over the button
+                    projectBtn.addEventListener('mouseenter', () => {
+                        // Position the sidebar next to the button vertically aligned
+                        const rect = projectBtn.getBoundingClientRect();
+                        // Set top equal to button's top and left equal to button's right edge
+                        sidebarEl.style.top = rect.top + 'px';
+                        sidebarEl.style.left = rect.right + 'px';
+                        sidebarEl.classList.add('show');
+                    });
+                    // Hide the sidebar when mouse leaves the button (with small delay)
+                    projectBtn.addEventListener('mouseleave', () => {
+                        setTimeout(() => {
+                            if (!sidebarEl.matches(':hover') && !projectBtn.matches(':hover')) {
+                                sidebarEl.classList.remove('show');
+                            }
+                        }, 100);
+                    });
+                    // Hide the sidebar when mouse leaves the sidebar itself, if not hovering the button
+                    sidebarEl.addEventListener('mouseleave', () => {
+                        if (!projectBtn.matches(':hover')) {
+                            sidebarEl.classList.remove('show');
+                        }
+                    });
+                }
+            })();
+        })();
+    </script>
+</body>
+</html>
