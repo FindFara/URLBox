@@ -12,5 +12,7 @@ namespace URLBox.Infrastructure.Persistance
 
         public DbSet<Url> Urls { get; set; }
         public DbSet<Project> Projects { get; set; }
+        public DbSet<Team> Teams { get; set; }
+
     }
 }

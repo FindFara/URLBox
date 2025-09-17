@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 using URLBox.Application.Services;
+using URLBox.Application.ViewModel;
 using URLBox.Domain.Enums;
 using URLBox.Domain.Models;
 
@@ -11,19 +12,25 @@ namespace URLBox.Presentation.Controllers
         private readonly ILogger<HomeController> _logger;
         private readonly UrlService _urlService;
         private readonly ProjectService _projectService;
+        private readonly TeamService _teamService;
 
-        public HomeController(ILogger<HomeController> logger, UrlService urlService, ProjectService projectService)
+
+        public HomeController(ILogger<HomeController> logger, UrlService urlService, ProjectService projectService, TeamService teamService)
         {
             _logger = logger;
             _urlService = urlService;
             _projectService = projectService;
+            _teamService = teamService;
         }
 
         public async Task<IActionResult> Index()
         {
             var urls = await _urlService.GetUrlsAsync();
             var projects = await _projectService.GetProjectsAsync();
+            var teams = await _teamService.GetTeamsAsync();
+
             ViewBag.Projects = projects;
+            ViewBag.teams = teams;
             return View(urls.ToList());
         }
 

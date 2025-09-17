@@ -33,9 +33,31 @@ namespace URLBox.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("TeamId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
+                    b.HasIndex("TeamId");
+
                     b.ToTable("Projects");
+                });
+
+            modelBuilder.Entity("URLBox.Domain.Entities.Team", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Teams");
                 });
 
             modelBuilder.Entity("URLBox.Domain.Entities.Url", b =>
@@ -67,6 +89,20 @@ namespace URLBox.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Urls");
+                });
+
+            modelBuilder.Entity("URLBox.Domain.Entities.Project", b =>
+                {
+                    b.HasOne("URLBox.Domain.Entities.Team", null)
+                        .WithMany("Projects")
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("URLBox.Domain.Entities.Team", b =>
+                {
+                    b.Navigation("Projects");
                 });
 #pragma warning restore 612, 618
         }

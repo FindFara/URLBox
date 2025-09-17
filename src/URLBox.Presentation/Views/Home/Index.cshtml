@@ -21,6 +21,21 @@
     </style>
 </head>
 <body>
+    <!-- Authentication links and greeting -->
+    <div class="container mt-2 text-end">
+        @if (User?.Identity?.IsAuthenticated ?? false)
+        {
+            <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
+                <button type="submit" class="btn btn-outline-secondary btn-sm me-2">Logout</button>
+            </form>
+            <span class="me-2 text-muted">Hello, @User.Identity?.Name</span>
+        }
+        else
+        {
+            <a asp-controller="Account" asp-action="Login" class="btn btn-outline-primary btn-sm me-2">Login</a>
+            <a asp-controller="Account" asp-action="Register" class="btn btn-outline-secondary btn-sm">Register</a>
+        }
+    </div>
     <!-- Top bar for mobile -->
     <div class="mobile-topbar d-lg-none">
         <button id="hamburgerBtn"
@@ -38,6 +53,11 @@
     <aside id="leftSidebar" class="d-none d-lg-flex flex-column align-items-center gap-3">
         <!-- Add -->
         <button type="button" class="btn btn-primary btn-icon"
+                data-bs-toggle="modal" data-bs-target="#loginModal"
+                data-bs-placement="right" title="Login">
+            <i class="bi bi-person"></i>
+        </button>
+         <button type="button" class="btn btn-primary btn-icon"
                 data-bs-toggle="modal" data-bs-target="#addUrlModal"
                 data-bs-placement="right" title="Add">
             <i class="bi bi-plus-lg"></i>
@@ -67,6 +87,11 @@
         </div>
         <div class="offcanvas-body d-flex flex-column gap-3">
             <button type="button" class="btn btn-primary w-100"
+                    data-bs-toggle="modal" data-bs-target="#loginModal"
+                    data-bs-dismiss="offcanvas">
+                <i class="bi bi-plus-lg me-1"></i> Login
+            </button>
+            <button type="button" class="btn btn-primary w-100"
                     data-bs-toggle="modal" data-bs-target="#addUrlModal"
                     data-bs-dismiss="offcanvas">
                 <i class="bi bi-plus-lg me-1"></i> Add
@@ -75,7 +100,7 @@
             <button type="button" class="btn btn-outline-secondary w-100"
                     data-bs-toggle="offcanvas" data-bs-target="#projectMenu"
                     data-bs-dismiss="offcanvas">
-                <i class="bi bi-tag me-1"></i> 
+                <i class="bi bi-tag me-1"></i>
             </button>
             <button id="themeToggleMobile" type="button" class="btn btn-outline-secondary w-100">
                 <i id="themeIconMobile" class="bi bi-moon-fill me-1"></i> Dark mode
@@ -129,6 +154,10 @@
                             <select class="form-control form-control-sm" id="tag" name="tag" required>
                                 <option value="آساپی">آساپی</option>
                                 <option value="دایرکت دبیت">دایرکت دبیت</option>
+                                @foreach(var project in  ViewBag.Projects)
+                                {
+                                   <option value="@project.Name">@project.Name</option>
+                                }
                             </select>
                         </div>
                         <div class="form-group mb-3">
@@ -169,6 +198,46 @@
         </div>
     </div>
 
+    <!-- Modal for Login -->
+    <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content shadow-sm">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="loginModalLabel">Login</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form asp-controller="Account" asp-action="Login" method="post">
+                        @Html.AntiForgeryToken()
+                        <div class="mb-3">
+                            <label for="loginEmail" class="form-label">Email</label>
+                            <input type="email" class="form-control form-control-sm" id="loginEmail" name="Email" required />
+                        </div>
+                        <div class="mb-3">
+                            <label for="loginPassword" class="form-label">Password</label>
+                            <input type="password" class="form-control form-control-sm" id="loginPassword" name="Password" required />
+                        </div>
+                                                <div class="form-group mb-3">
+                            <label for="tag">Tag:</label>
+                            <select class="form-control form-control-sm" id="tag" name="tag" required>
+                                @foreach(var team in ViewBag.teams)
+                                {
+                                   <option value="@team.Title">@team.Title</option>
+                                }
+                            </select>
+                        </div>
+                        <br />
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="loginRememberMe" name="RememberMe" />
+                            <label class="form-check-label" for="loginRememberMe">Remember me</label>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-sm w-100">Login</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
     <!-- Content -->
     <div class="container-fluid mt-4">
         <div class="row mt-4">

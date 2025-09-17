@@ -5,22 +5,22 @@
 namespace URLBox.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class ChangeColumnName : Migration
+    public partial class addteams : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
-                name: "Projects",
+                name: "Teams",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    Title = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Projects", x => x.Id);
+                    table.PrimaryKey("PK_Teams", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -39,6 +39,31 @@ namespace URLBox.Infrastructure.Migrations
                 {
                     table.PrimaryKey("PK_Urls", x => x.Id);
                 });
+
+            migrationBuilder.CreateTable(
+                name: "Projects",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    TeamId = table.Column<int>(type: "int", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Projects", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Projects_Teams_TeamId",
+                        column: x => x.TeamId,
+                        principalTable: "Teams",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Projects_TeamId",
+                table: "Projects",
+                column: "TeamId");
         }
 
         /// <inheritdoc />
@@ -49,6 +74,9 @@ namespace URLBox.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "Urls");
+
+            migrationBuilder.DropTable(
+                name: "Teams");
         }
     }
 }

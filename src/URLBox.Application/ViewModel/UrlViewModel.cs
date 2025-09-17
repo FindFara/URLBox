@@ -15,5 +15,6 @@ namespace URLBox.Application.ViewModel
         public int Order { get; set; }
 
         public EnvironmentType Environment { get; set; }
+
     }
 }
