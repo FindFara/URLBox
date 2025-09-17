@@ -12,6 +12,6 @@ namespace URLBox.Application.ViewModel
     {
         public int Id { get; set; }
         public string Title { get; set; }
-        public List<ProjectViewModel> Projects { get; set; }
+        public List<ProjectViewModel>? Projects { get; set; } = null;
     }
 }

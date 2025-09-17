@@ -27,7 +27,7 @@ namespace URLBox.Presentation.Controllers
         {
             var urls = await _urlService.GetUrlsAsync();
             var projects = await _projectService.GetProjectsAsync();
-            var teams = await _teamService.GetTeamsAsync();
+            var teams = await _teamService.GetTeamsOnly();
 
             ViewBag.Projects = projects;
             ViewBag.teams = teams;

@@ -19,23 +19,9 @@
     <style>
 
     </style>
+    </style>
 </head>
 <body>
-    <!-- Authentication links and greeting -->
-    <div class="container mt-2 text-end">
-        @if (User?.Identity?.IsAuthenticated ?? false)
-        {
-            <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
-                <button type="submit" class="btn btn-outline-secondary btn-sm me-2">Logout</button>
-            </form>
-            <span class="me-2 text-muted">Hello, @User.Identity?.Name</span>
-        }
-        else
-        {
-            <a asp-controller="Account" asp-action="Login" class="btn btn-outline-primary btn-sm me-2">Login</a>
-            <a asp-controller="Account" asp-action="Register" class="btn btn-outline-secondary btn-sm">Register</a>
-        }
-    </div>
     <!-- Top bar for mobile -->
     <div class="mobile-topbar d-lg-none">
         <button id="hamburgerBtn"
@@ -152,8 +138,6 @@
                         <div class="form-group mb-3">
                             <label for="tag">Tag:</label>
                             <select class="form-control form-control-sm" id="tag" name="tag" required>
-                                <option value="آساپی">آساپی</option>
-                                <option value="دایرکت دبیت">دایرکت دبیت</option>
                                 @foreach(var project in  ViewBag.Projects)
                                 {
                                    <option value="@project.Name">@project.Name</option>
@@ -217,10 +201,13 @@
                             <label for="loginPassword" class="form-label">Password</label>
                             <input type="password" class="form-control form-control-sm" id="loginPassword" name="Password" required />
                         </div>
-                                                <div class="form-group mb-3">
-                            <label for="tag">Tag:</label>
-                            <select class="form-control form-control-sm" id="tag" name="tag" required>
-                                @foreach(var team in ViewBag.teams)
+                        <div class="form-group mb-3">
+                            <label for="tag">Teams:</label>
+                            <select class="form-control form-control-sm" id="team" name="team" required>
+                                @{
+                                        var teams = ViewBag.teams as IEnumerable<TeamViewModel>  ?? Enumerable.Empty<TeamViewModel>();
+                                }
+                                @foreach(var team in teams)
                                 {
                                    <option value="@team.Title">@team.Title</option>
                                 }
@@ -247,10 +234,10 @@
                     <h4 class="text-primary">@envType</h4>
                     @foreach (var url in Model.Where(u => u.Environment == envType))
                     {
-                        <div class="card p-2 mb-3 shadow-sm" data-project='@((url.Tag == "آساپی") ? "asapay" : "directdebit")'>
+                        <div class="card p-2 mb-3 shadow-sm" data-project='@((url.Tag == "AsaPay") ? "AsaPay" : "Directdebit")'>
                             <h6 class="mb-1" style="color:var(--text-muted-strong);">
                                 @url.Description
-                                <span class="badge tag-badge @(url.Tag == "آساپی" ? "bg-asapi" : "bg-directDebit")">@url.Tag</span>
+                                <span class="badge tag-badge @(url.Tag == "AsaPay" ? "bg-asapi" : "bg-directDebit")">@url.Tag</span>
                             </h6>
                             <div class="input-group input-group-sm mb-2">
                                 <input type="text" class="form-control" value="@url.UrlValue" readonly />

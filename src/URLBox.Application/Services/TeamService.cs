@@ -15,18 +15,27 @@ namespace URLBox.Application.Services
 
         public async Task<IEnumerable<TeamViewModel>> GetTeamsAsync()
         {
-          var result = await _repository.GetAllAsync();
+            var result = await _repository.GetAllAsync();
             return result.Select(x => new TeamViewModel
             {
                 Id = x.Id,
-                Title= x.Title,
-                Projects = x.Projects.Select(p=>new ProjectViewModel
+                Title = x.Title,
+                Projects = x.Projects.Select(p => new ProjectViewModel
                 {
                     Name = p.Name,
                     Id = p.Id,
                 }).ToList(),
             });
-        } 
+        }
+        public async Task<IEnumerable<TeamViewModel>> GetTeamsOnly()
+        {
+            var result = await _repository.GetAllAsync();
+            return result.Select(x => new TeamViewModel
+            {
+                Id = x.Id,
+                Title = x.Title
+            });
+        }
         public async Task AddTeamAsync(string name)
         {
             var project = new Team { Title = name };
