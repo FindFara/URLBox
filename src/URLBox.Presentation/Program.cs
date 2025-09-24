@@ -1,3 +1,4 @@
+using URLBox.Domain.Entities;
 using URLBox.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -5,7 +6,6 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
 builder.Services.RegisterApplicationServices(builder.Configuration);
 builder.Services.RegisterInfrastructureServices(builder.Configuration);
-
 
 var app = builder.Build();
 

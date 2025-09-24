@@ -34,12 +34,14 @@ namespace URLBox.Presentation.Controllers
         {
             if (ModelState.IsValid)
             {
-                var user = new IdentityUser { UserName = model.Email, Email = model.Email };
+                var user = new IdentityUser { UserName = model.UserName };
                 var result = await _userManager.CreateAsync(user, model.Password);
                 if (result.Succeeded)
                 {
+                    await _userManager.AddToRoleAsync(user , model.Team);
                     _logger.LogInformation("User created a new account with password.");
                     await _signInManager.SignInAsync(user, isPersistent: false);
+
                     return RedirectToAction("Index", "Home");
                 }
                 foreach (var error in result.Errors)

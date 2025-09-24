@@ -6,7 +6,7 @@ namespace URLBox.Domain.Entities
     {
         [Key]
         public int Id { get; set; }
-        public int TeamId { get; set; }
+        public int RoleId { get; set; }
         [Required]
         public string Name { get; set; } = string.Empty;
 

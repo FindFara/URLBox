@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 using URLBox.Application.Services;
 using URLBox.Application.ViewModel;
@@ -12,25 +13,25 @@ namespace URLBox.Presentation.Controllers
         private readonly ILogger<HomeController> _logger;
         private readonly UrlService _urlService;
         private readonly ProjectService _projectService;
-        private readonly TeamService _teamService;
+        private readonly RoleManager<IdentityRole> _roleManager;
 
 
-        public HomeController(ILogger<HomeController> logger, UrlService urlService, ProjectService projectService, TeamService teamService)
+        public HomeController(ILogger<HomeController> logger, UrlService urlService, ProjectService projectService, RoleManager<IdentityRole> roleManager)
         {
             _logger = logger;
             _urlService = urlService;
             _projectService = projectService;
-            _teamService = teamService;
+            _roleManager = roleManager;
         }
 
         public async Task<IActionResult> Index()
         {
             var urls = await _urlService.GetUrlsAsync();
             var projects = await _projectService.GetProjectsAsync();
-            var teams = await _teamService.GetTeamsOnly();
+            var rols =  _roleManager.Roles.ToList();
 
             ViewBag.Projects = projects;
-            ViewBag.teams = teams;
+            ViewBag.teams = rols;
             return View(urls.ToList());
         }
 

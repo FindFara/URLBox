@@ -205,11 +205,11 @@
                             <label for="tag">Teams:</label>
                             <select class="form-control form-control-sm" id="team" name="team" required>
                                 @{
-                                        var teams = ViewBag.teams as IEnumerable<TeamViewModel>  ?? Enumerable.Empty<TeamViewModel>();
+                                    var teams = ViewBag.teams;
                                 }
                                 @foreach(var team in teams)
                                 {
-                                   <option value="@team.Title">@team.Title</option>
+                                   <option value="@team.Name">@team.Name</option>
                                 }
                             </select>
                         </div>
