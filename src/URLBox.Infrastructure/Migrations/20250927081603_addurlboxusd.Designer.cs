@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using URLBox.Infrastructure.Persistance;
 
@@ -11,9 +12,11 @@ using URLBox.Infrastructure.Persistance;
 namespace URLBox.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250927081603_addurlboxusd")]
+    partial class addurlboxusd
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -232,6 +235,9 @@ namespace URLBox.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("RoleId")
+                        .HasColumnType("int");
+
                     b.Property<int>("TeamsId")
                         .HasColumnType("int");
 
@@ -274,16 +280,18 @@ namespace URLBox.Infrastructure.Migrations
                     b.Property<int>("Environment")
                         .HasColumnType("int");
 
-                    b.Property<int>("ProjectId")
+                    b.Property<int>("Order")
                         .HasColumnType("int");
+
+                    b.Property<string>("Tag")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("UrlValue")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ProjectId");
 
                     b.ToTable("Urls");
                 });
@@ -348,22 +356,6 @@ namespace URLBox.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Teams");
-                });
-
-            modelBuilder.Entity("URLBox.Domain.Entities.Url", b =>
-                {
-                    b.HasOne("URLBox.Domain.Entities.Project", "Projects")
-                        .WithMany("Urls")
-                        .HasForeignKey("ProjectId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Projects");
-                });
-
-            modelBuilder.Entity("URLBox.Domain.Entities.Project", b =>
-                {
-                    b.Navigation("Urls");
                 });
 
             modelBuilder.Entity("URLBox.Domain.Entities.Team", b =>

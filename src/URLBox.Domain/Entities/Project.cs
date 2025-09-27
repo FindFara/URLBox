@@ -6,10 +6,9 @@ namespace URLBox.Domain.Entities
     {
         [Key]
         public int Id { get; set; }
-        public int RoleId { get; set; }
         [Required]
-        public string Name { get; set; } = string.Empty;
-
-
+        public required string Name { get; set; }
+        public Team Teams { get; set; }
+        public List<Url> Urls { get; set; }
     }
 }

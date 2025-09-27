@@ -5,7 +5,7 @@ namespace URLBox.Domain.Interfaces
 {
     public interface ITeamRepository
     {
-        Task<IEnumerable<ApplicationRole>> GetAllAsync();
-        Task AddAsync(ApplicationRole project);
+        Task<IEnumerable<Team>> GetAllAsync();
+        Task AddAsync(Team team);
     }
 }

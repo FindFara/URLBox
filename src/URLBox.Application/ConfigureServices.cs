@@ -10,7 +10,7 @@ public static class ConfigureServices
     {
         services.AddScoped<UrlService>();
         services.AddScoped<ProjectService>();
-       // services.AddScoped<TeamService>();
+        services.AddScoped<TeamService>();
 
         return services;
     }

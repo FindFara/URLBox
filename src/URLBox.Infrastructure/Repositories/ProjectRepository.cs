@@ -1,38 +1,46 @@
+
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
 using URLBox.Domain.Entities;
 using URLBox.Domain.Interfaces;
 using URLBox.Infrastructure.Persistance;
 
 namespace URLBox.Infrastructure.Repositories;
 
-//public class TeamRepository : ITeamRepository
-//{
-//    private readonly ApplicationDbContext _context;
+public class ProjectRepository : IProjectRepository
+{
+    private readonly ApplicationDbContext _context;
 
-//    public TeamRepository(ApplicationDbContext context)
-//    {
-//        _context = context;
-//    }
+    public ProjectRepository(ApplicationDbContext context)
+    {
+        _context = context;
+    }
 
-//    public async Task<IEnumerable<ApplicationRole>> GetAllAsync()
-//    {
-//        return await _context.Teams
-//            .AsNoTracking()
-//            .Select(p => new ApplicationRole
-//            {
-//                Id = p.Id,
-//                Title = p.Title
-//            })
-//            .ToListAsync();
-//    }
+    public async Task<IEnumerable<Project>> GetAllAsync()
+    {
+        return await _context.Projects
+            .AsNoTracking()
+            .Select(p => new Project
+            {
+                Id = p.Id,
+                Name = p.Name
+            })
+            .ToListAsync();
+    }
 
-//    public async Task AddAsync(ApplicationRole team)
-//    {
-//        var entity = new ApplicationRole
-//        {
-//            Title = team.Title
-//        };
-//        _context.Teams.Add(entity);
-//        await _context.SaveChangesAsync();
-//    }
-//}
+    public async Task AddAsync(Project project)
+    {
+        var entity = new Project
+        {
+            Name = project.Name
+        };
+        _context.Projects.Add(entity);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task<Project> GetProject(string projectName)
+    {
+        return await _context.Projects
+                             .FirstOrDefaultAsync(p => p.Name == projectName);
+    }
+}

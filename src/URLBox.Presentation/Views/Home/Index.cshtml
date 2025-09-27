@@ -43,7 +43,7 @@
                 data-bs-placement="right" title="Login">
             <i class="bi bi-person"></i>
         </button>
-         <button type="button" class="btn btn-primary btn-icon"
+        <button type="button" class="btn btn-primary btn-icon"
                 data-bs-toggle="modal" data-bs-target="#addUrlModal"
                 data-bs-placement="right" title="Add">
             <i class="bi bi-plus-lg"></i>
@@ -136,11 +136,11 @@
                             <input type="text" class="form-control form-control-sm" id="description" name="description" placeholder="Enter description" required />
                         </div>
                         <div class="form-group mb-3">
-                            <label for="tag">Tag:</label>
-                            <select class="form-control form-control-sm" id="tag" name="tag" required>
-                                @foreach(var project in  ViewBag.Projects)
+                            <label for="project">Projects:</label>
+                            <select class="form-control form-control-sm" id="project" name="project" required>
+                                @foreach (var project in ViewBag.Projects)
                                 {
-                                   <option value="@project.Name">@project.Name</option>
+                                    <option value="@project.Name">@project.Name</option>
                                 }
                             </select>
                         </div>
@@ -202,14 +202,14 @@
                             <input type="password" class="form-control form-control-sm" id="loginPassword" name="Password" required />
                         </div>
                         <div class="form-group mb-3">
-                            <label for="tag">Teams:</label>
+                            <label for="team">Teams:</label>
                             <select class="form-control form-control-sm" id="team" name="team" required>
                                 @{
-                                    var teams = ViewBag.teams;
+                                    var teams = ViewBag.teams as IEnumerable<TeamViewModel> ?? Enumerable.Empty<TeamViewModel>();
                                 }
-                                @foreach(var team in teams)
+                                @foreach (var team in teams)
                                 {
-                                   <option value="@team.Name">@team.Name</option>
+                                    <option value="@team.Name">@team.Name</option>
                                 }
                             </select>
                         </div>

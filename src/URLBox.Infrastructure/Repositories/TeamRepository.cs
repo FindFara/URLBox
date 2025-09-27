@@ -5,20 +5,20 @@ using URLBox.Infrastructure.Persistance;
 
 namespace URLBox.Infrastructure.Repositories;
 
-public class ProjectRepository : IProjectRepository
+public class TeamRepository : ITeamRepository
 {
     private readonly ApplicationDbContext _context;
 
-    public ProjectRepository(ApplicationDbContext context)
+    public TeamRepository(ApplicationDbContext context)
     {
         _context = context;
     }
 
-    public async Task<IEnumerable<Project>> GetAllAsync()
+    public async Task<IEnumerable<Team>> GetAllAsync()
     {
-        return await _context.Projects
+        return await _context.Teams
             .AsNoTracking()
-            .Select(p => new Project
+            .Select(p => new Team
             {
                 Id = p.Id,
                 Name = p.Name
@@ -26,13 +26,13 @@ public class ProjectRepository : IProjectRepository
             .ToListAsync();
     }
 
-    public async Task AddAsync(Project project)
+    public async Task AddAsync(Team team)
     {
-        var entity = new Project
+        var entity = new Team
         {
-            Name = project.Name
+            Name = team.Name
         };
-        _context.Projects.Add(entity);
+        _context.Teams.Add(entity);
         await _context.SaveChangesAsync();
     }
 }

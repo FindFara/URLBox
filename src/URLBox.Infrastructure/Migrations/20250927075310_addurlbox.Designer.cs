@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using URLBox.Infrastructure.Persistance;
 
@@ -11,9 +12,11 @@ using URLBox.Infrastructure.Persistance;
 namespace URLBox.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250927075310_addurlbox")]
+    partial class addurlbox
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -228,35 +231,21 @@ namespace URLBox.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("ApplicationRoleId")
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("TeamsId")
+                    b.Property<int>("RoleId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("TeamsId");
+                    b.HasIndex("ApplicationRoleId");
 
                     b.ToTable("Projects");
-                });
-
-            modelBuilder.Entity("URLBox.Domain.Entities.Team", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Teams");
                 });
 
             modelBuilder.Entity("URLBox.Domain.Entities.Url", b =>
@@ -274,16 +263,18 @@ namespace URLBox.Infrastructure.Migrations
                     b.Property<int>("Environment")
                         .HasColumnType("int");
 
-                    b.Property<int>("ProjectId")
+                    b.Property<int>("Order")
                         .HasColumnType("int");
+
+                    b.Property<string>("Tag")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("UrlValue")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ProjectId");
 
                     b.ToTable("Urls");
                 });
@@ -341,32 +332,12 @@ namespace URLBox.Infrastructure.Migrations
 
             modelBuilder.Entity("URLBox.Domain.Entities.Project", b =>
                 {
-                    b.HasOne("URLBox.Domain.Entities.Team", "Teams")
+                    b.HasOne("URLBox.Domain.Entities.ApplicationRole", null)
                         .WithMany("Projects")
-                        .HasForeignKey("TeamsId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Teams");
+                        .HasForeignKey("ApplicationRoleId");
                 });
 
-            modelBuilder.Entity("URLBox.Domain.Entities.Url", b =>
-                {
-                    b.HasOne("URLBox.Domain.Entities.Project", "Projects")
-                        .WithMany("Urls")
-                        .HasForeignKey("ProjectId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Projects");
-                });
-
-            modelBuilder.Entity("URLBox.Domain.Entities.Project", b =>
-                {
-                    b.Navigation("Urls");
-                });
-
-            modelBuilder.Entity("URLBox.Domain.Entities.Team", b =>
+            modelBuilder.Entity("URLBox.Domain.Entities.ApplicationRole", b =>
                 {
                     b.Navigation("Projects");
                 });

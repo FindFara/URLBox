@@ -23,8 +23,6 @@ public class UrlRepository : IUrlRepository
                 Id = u.Id,
                 UrlValue = u.UrlValue,
                 Description = u.Description,
-                Tag = u.Tag,
-                Order = u.Order,
                 Environment = (Domain.Enums.EnvironmentType)u.Environment
             })
             .ToListAsync();
@@ -32,15 +30,7 @@ public class UrlRepository : IUrlRepository
 
     public async Task AddAsync(Url url)
     {
-        var entity = new Url
-        {
-            UrlValue = url.UrlValue,
-            Description = url.Description,
-            Tag = url.Tag,
-            Order = url.Order,
-            Environment = (EnvironmentType)url.Environment
-        };
-        _context.Urls.Add(entity);
+        _context.Urls.Add(url);
         await _context.SaveChangesAsync();
     }
 

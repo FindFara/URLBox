@@ -1,8 +1,6 @@
-﻿using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 using URLBox.Application.Services;
-using URLBox.Application.ViewModel;
 using URLBox.Domain.Enums;
 using URLBox.Domain.Models;
 
@@ -13,34 +11,33 @@ namespace URLBox.Presentation.Controllers
         private readonly ILogger<HomeController> _logger;
         private readonly UrlService _urlService;
         private readonly ProjectService _projectService;
-        private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly TeamService _teamService;
 
-
-        public HomeController(ILogger<HomeController> logger, UrlService urlService, ProjectService projectService, RoleManager<IdentityRole> roleManager)
+        public HomeController(ILogger<HomeController> logger, UrlService urlService, ProjectService projectService, TeamService teamService)
         {
             _logger = logger;
             _urlService = urlService;
             _projectService = projectService;
-            _roleManager = roleManager;
+            _teamService = teamService;
         }
 
         public async Task<IActionResult> Index()
         {
             var urls = await _urlService.GetUrlsAsync();
             var projects = await _projectService.GetProjectsAsync();
-            var rols =  _roleManager.Roles.ToList();
+            var teams = await _teamService.GetTeamsOnly();
 
             ViewBag.Projects = projects;
-            ViewBag.teams = rols;
+            ViewBag.teams = teams;
             return View(urls.ToList());
         }
 
         [HttpPost]
-        public async Task<IActionResult> AddUrl(string url, string description, EnvironmentType environment, string tag)
+        public async Task<IActionResult> AddUrl(string url, string description, EnvironmentType environment, string project)
         {
             if (!string.IsNullOrEmpty(url))
             {
-                await _urlService.AddUrlAsync(url, description, environment, tag);
+                await _urlService.AddUrlAsync(url, description, environment, project);
             }
             return RedirectToAction("Index");
         }
@@ -55,14 +52,11 @@ namespace URLBox.Presentation.Controllers
             return RedirectToAction("Index");
         }
 
-
         public async Task<IActionResult> DeleteUrl(int id)
         {
             await _urlService.DeleteUrlAsync(id);
             return RedirectToAction("Index");
         }
-
-
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()

@@ -12,8 +12,8 @@ using URLBox.Infrastructure.Persistance;
 namespace URLBox.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250924130714_add-identity")]
-    partial class addidentity
+    [Migration("20250927080328_addurlboxu")]
+    partial class addurlboxu
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -231,9 +231,6 @@ namespace URLBox.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("ApplicationRoleId")
-                        .HasColumnType("nvarchar(450)");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -241,9 +238,12 @@ namespace URLBox.Infrastructure.Migrations
                     b.Property<int>("RoleId")
                         .HasColumnType("int");
 
+                    b.Property<string>("RolesId")
+                        .HasColumnType("nvarchar(450)");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("ApplicationRoleId");
+                    b.HasIndex("RolesId");
 
                     b.ToTable("Projects");
                 });
@@ -332,9 +332,11 @@ namespace URLBox.Infrastructure.Migrations
 
             modelBuilder.Entity("URLBox.Domain.Entities.Project", b =>
                 {
-                    b.HasOne("URLBox.Domain.Entities.ApplicationRole", null)
+                    b.HasOne("URLBox.Domain.Entities.ApplicationRole", "Roles")
                         .WithMany("Projects")
-                        .HasForeignKey("ApplicationRoleId");
+                        .HasForeignKey("RolesId");
+
+                    b.Navigation("Roles");
                 });
 
             modelBuilder.Entity("URLBox.Domain.Entities.ApplicationRole", b =>

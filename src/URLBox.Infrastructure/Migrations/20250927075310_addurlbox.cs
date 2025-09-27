@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace URLBox.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class addidentity : Migration
+    public partial class addurlbox : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
