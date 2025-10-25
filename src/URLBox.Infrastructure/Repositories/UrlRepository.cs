@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using URLBox.Domain.Entities;
@@ -38,5 +39,13 @@ public class UrlRepository : IUrlRepository
             _context.Urls.Remove(entity);
             await _context.SaveChangesAsync();
         }
+    }
+
+    public async Task<Url?> GetByIdAsync(int id)
+    {
+        return await _context.Urls
+            .Include(u => u.Project)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == id);
     }
 }

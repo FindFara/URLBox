@@ -16,5 +16,9 @@ namespace URLBox.Application.ViewModel
 
         public EnvironmentType Environment { get; set; }
 
+        public bool IsPublic { get; set; }
+
+        public bool CanManage { get; set; }
+
     }
 }
