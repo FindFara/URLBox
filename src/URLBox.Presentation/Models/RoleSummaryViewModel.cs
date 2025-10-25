@@ -9,6 +9,8 @@ namespace URLBox.Presentation.Models
         public string RoleName { get; set; } = string.Empty;
 
         public int AssignedUserCount { get; set; }
+
+        public int UrlCount { get; set; }
     }
 
     public class CreateUserInputModel

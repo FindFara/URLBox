@@ -1,14 +1,24 @@
 @model URLBox.Presentation.Models.AdminDashboardViewModel
+@using System
+@using System.Linq
+@using System.Text.Json
 @{
     ViewData["Title"] = "Admin dashboard";
     Layout = "~/Views/Shared/_Layout.cshtml";
+    var statusMessage = Model.StatusMessage;
+    var usersChartLabels = JsonSerializer.Serialize(Model.UsersPerRole.Select(p => p.Label));
+    var usersChartValues = JsonSerializer.Serialize(Model.UsersPerRole.Select(p => p.Value));
+    var urlsChartLabels = JsonSerializer.Serialize(Model.UrlsPerRole.Select(p => p.Label));
+    var urlsChartValues = JsonSerializer.Serialize(Model.UrlsPerRole.Select(p => p.Value));
+    var rolesInUse = Model.Roles.Count(r => r.AssignedUserCount > 0);
+    var averageUrlsPerUser = Model.TotalUsers == 0 ? 0 : Math.Round((double)Model.TotalUrls / Model.TotalUsers, 1);
 }
 
 <section class="py-4">
     <div class="d-flex flex-column flex-xl-row justify-content-between align-items-xl-center gap-3 mb-4">
         <div>
             <h1 class="h3 mb-1">Administration</h1>
-            <p class="text-muted mb-0">Manage team members and roles that control access to protected URLs.</p>
+            <p class="text-muted mb-0">A minimal workspace for people, roles, and URL visibility.</p>
         </div>
         <div class="d-flex flex-wrap gap-2">
             <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#createUserModal">
@@ -22,14 +32,82 @@
         </div>
     </div>
 
-    @if (!string.IsNullOrEmpty(Model.StatusMessage))
+    @if (!string.IsNullOrEmpty(statusMessage))
     {
-        <div class="alert alert-info alert-dismissible fade show" role="alert">
+        <div class="alert alert-info alert-dismissible fade show shadow-sm" role="alert">
             <i class="bi bi-info-circle me-1"></i>
-            @Model.StatusMessage
+            @statusMessage
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     }
+
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-xl-3">
+            <div class="stat-card shadow-sm h-100">
+                <span class="stat-label">Total users</span>
+                <span class="stat-value">@Model.TotalUsers</span>
+                <span class="stat-subtext">@Model.UsersWithoutRoleCount user@(Model.UsersWithoutRoleCount == 1 ? string.Empty : "s") without role</span>
+            </div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="stat-card shadow-sm h-100">
+                <span class="stat-label">Total roles</span>
+                <span class="stat-value">@Model.TotalRoles</span>
+                <span class="stat-subtext">@rolesInUse in use</span>
+            </div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="stat-card shadow-sm h-100">
+                <span class="stat-label">Stored URLs</span>
+                <span class="stat-value">@Model.TotalUrls</span>
+                <span class="stat-subtext">@Model.PublicUrlCount public · @Model.PrivateUrlCount private</span>
+            </div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="stat-card shadow-sm h-100">
+                <span class="stat-label">Average URLs / user</span>
+                <span class="stat-value">@averageUrlsPerUser.ToString("0.0")</span>
+                <span class="stat-subtext">Balanced distribution keeps things tidy</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-xl-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-transparent py-3">
+                    <h2 class="h6 mb-0">Users by role</h2>
+                </div>
+                <div class="card-body">
+                    @if (!Model.UsersPerRole.Any())
+                    {
+                        <p class="text-muted mb-0">Assign roles to start tracking usage.</p>
+                    }
+                    else
+                    {
+                        <canvas id="usersRoleChart" height="220"></canvas>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-xl-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-transparent py-3">
+                    <h2 class="h6 mb-0">URLs by project / role</h2>
+                </div>
+                <div class="card-body">
+                    @if (!Model.UrlsPerRole.Any())
+                    {
+                        <p class="text-muted mb-0">No URLs have been stored yet.</p>
+                    }
+                    else
+                    {
+                        <canvas id="urlsRoleChart" height="220"></canvas>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div class="row g-4">
         <div class="col-12 col-xl-7">
@@ -54,6 +132,7 @@
                                         <th scope="col">Name</th>
                                         <th scope="col">Email</th>
                                         <th scope="col">Roles</th>
+                                        <th scope="col" class="text-center">URLs</th>
                                         <th scope="col" class="text-end">Actions</th>
                                     </tr>
                                 </thead>
@@ -94,6 +173,9 @@
                                                 {
                                                     <span class="text-muted">No roles assigned</span>
                                                 }
+                                            </td>
+                                            <td class="text-center">
+                                                <span class="badge text-bg-light border">@user.OwnedUrlCount</span>
                                             </td>
                                             <td class="text-end">
                                                 <div class="btn-group" role="group">
@@ -144,7 +226,7 @@
                                 <li class="list-group-item d-flex justify-content-between align-items-center gap-3">
                                     <div>
                                         <div class="fw-medium">@role.RoleName</div>
-                                        <small class="text-muted">@role.AssignedUserCount user@(role.AssignedUserCount == 1 ? string.Empty : "s")</small>
+                                        <small class="text-muted">@role.AssignedUserCount user@(role.AssignedUserCount == 1 ? string.Empty : "s") · @role.UrlCount URL@(role.UrlCount == 1 ? string.Empty : "s")</small>
                                     </div>
                                     <div class="btn-group" role="group">
                                         <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="modal"
@@ -358,7 +440,70 @@
 </div>
 
 @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
+        const palette = ['#0d6efd', '#6610f2', '#6c757d', '#198754', '#fd7e14', '#20c997', '#d63384'];
+        const userRoleLabels = @Html.Raw(usersChartLabels);
+        const userRoleValues = @Html.Raw(usersChartValues);
+        const urlsRoleLabels = @Html.Raw(urlsChartLabels);
+        const urlsRoleValues = @Html.Raw(urlsChartValues);
+
+        if (Array.isArray(userRoleLabels) && userRoleLabels.length && typeof Chart !== 'undefined') {
+            const userCtx = document.getElementById('usersRoleChart');
+            if (userCtx) {
+                const colors = userRoleLabels.map((_, index) => palette[index % palette.length]);
+                new Chart(userCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: userRoleLabels,
+                        datasets: [{
+                            data: userRoleValues,
+                            backgroundColor: colors,
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        if (Array.isArray(urlsRoleLabels) && urlsRoleLabels.length && typeof Chart !== 'undefined') {
+            const urlCtx = document.getElementById('urlsRoleChart');
+            if (urlCtx) {
+                const colors = urlsRoleLabels.map((_, index) => palette[index % palette.length]);
+                new Chart(urlCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: urlsRoleLabels,
+                        datasets: [{
+                            data: urlsRoleValues,
+                            backgroundColor: colors,
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    precision: 0
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
         const assignRoleModal = document.getElementById('assignRoleModal');
         if (assignRoleModal) {
             assignRoleModal.addEventListener('show.bs.modal', event => {

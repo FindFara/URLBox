@@ -16,5 +16,11 @@ namespace URLBox.Application.ViewModel
 
         public EnvironmentType Environment { get; set; }
 
+        public bool IsPublic { get; set; }
+
+        public string OwnerId { get; set; } = string.Empty;
+
+        public string OwnerName { get; set; } = string.Empty;
+
     }
 }

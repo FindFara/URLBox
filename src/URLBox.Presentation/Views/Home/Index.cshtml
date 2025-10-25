@@ -1,4 +1,5 @@
 @model IList<URLBox.Application.ViewModel.UrlViewModel>
+@using System
 @using System.Linq
 @using URLBox.Domain.Enums
 @using URLBox.Application.ViewModel
@@ -9,6 +10,12 @@
     var isAuthenticated = User.Identity?.IsAuthenticated ?? false;
     var isAdmin = User.IsInRole("Administrator");
     var isPublicPage = (ViewBag.IsPublicPage as bool?) ?? false;
+    var statusMessage = ViewBag.StatusMessage as string;
+    var statusType = ViewBag.StatusMessageType as string ?? "info";
+    var showLoginModal = (ViewBag.ShowLoginModal as bool?) ?? false;
+    var loginReturnUrl = ViewBag.LoginReturnUrl as string ?? Url.Action("Index", "Home");
+    var currentUserId = ViewBag.CurrentUserId as string ?? string.Empty;
+    var hasProjects = projects.Any();
 }
 
 <!doctype html>
@@ -59,9 +66,9 @@
             </button>
         }
 
-        @if (isAdmin)
+        @if (isAuthenticated && !isPublicPage)
         {
-            <button type="button" class="btn btn-primary btn-icon" data-bs-toggle="modal" data-bs-target="#addUrlModal" data-bs-placement="right" title="Add URL">
+            <button type="button" class="btn btn-primary btn-icon" data-bs-toggle="modal" data-bs-target="#addUrlModal" data-bs-placement="right" title="@(hasProjects ? "Add URL" : "Create or assign a project first")" @(!hasProjects ? "disabled" : "")>
                 <i class="bi bi-plus-lg"></i>
             </button>
         }
@@ -99,9 +106,9 @@
                     </button>
                 </form>
 
-                @if (isAdmin)
+                @if (isAuthenticated && !isPublicPage)
                 {
-                    <button type="button" class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#addUrlModal" data-bs-dismiss="offcanvas">
+                    <button type="button" class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#addUrlModal" data-bs-dismiss="offcanvas" title="@(hasProjects ? "Add URL" : "Create or assign a project first")" @(!hasProjects ? "disabled" : "")>
                         <i class="bi bi-plus-lg me-1"></i> Add URL
                     </button>
                 }
@@ -147,7 +154,7 @@
         <button type="button" class="btn btn-secondary btn-sm" onclick="applyProjectFilter('all')">Show all</button>
     </div>
 
-    @if (isAdmin)
+    @if (isAuthenticated && !isPublicPage)
     {
         <div class="modal fade" id="addUrlModal" tabindex="-1" aria-labelledby="addUrlModalLabel" aria-hidden="true">
             <div class="modal-dialog">
@@ -156,41 +163,56 @@
                         <h5 class="modal-title" id="addUrlModalLabel">Add new URL</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <div class="modal-body">
-                        <form method="post" asp-action="AddUrl">
-                            @Html.AntiForgeryToken()
-                            <div class="form-group mb-3">
-                                <label for="url">URL</label>
-                                <input type="url" class="form-control" id="url" name="url" placeholder="https://example.com" required />
-                            </div>
-                            <div class="form-group mb-3">
-                                <label for="description">Description</label>
-                                <input type="text" class="form-control" id="description" name="description" placeholder="Enter description" required />
-                            </div>
-                            <div class="form-group mb-3">
-                                <label for="project">Project</label>
-                                <select class="form-select" id="project" name="project" required>
-                                    @foreach (var project in projects)
-                                    {
-                                        <option value="@project.Name">@project.Name</option>
-                                    }
-                                </select>
-                            </div>
-                            <div class="form-group mb-3">
-                                <label for="environment">Environment</label>
-                                <select class="form-select" id="environment" name="environment">
-                                    @foreach (EnvironmentType envType in Enum.GetValues(typeof(EnvironmentType)))
-                                    {
-                                        <option value="@envType">@envType</option>
-                                    }
-                                </select>
-                            </div>
-                            <button type="submit" class="btn btn-primary w-100">Add URL</button>
-                        </form>
+                        <div class="modal-body">
+                            <form method="post" asp-action="AddUrl">
+                                @Html.AntiForgeryToken()
+                                @if (hasProjects)
+                                {
+                                    <div class="form-group mb-3">
+                                        <label for="url">URL</label>
+                                        <input type="url" class="form-control" id="url" name="url" placeholder="https://example.com" required />
+                                    </div>
+                                    <div class="form-group mb-3">
+                                        <label for="description">Description</label>
+                                        <input type="text" class="form-control" id="description" name="description" placeholder="Enter description" required />
+                                    </div>
+                                    <div class="form-group mb-3">
+                                        <label for="project">Project</label>
+                                        <select class="form-select" id="project" name="project" required>
+                                            @foreach (var project in projects)
+                                            {
+                                                <option value="@project.Name">@project.Name</option>
+                                            }
+                                        </select>
+                                    </div>
+                                    <div class="form-group mb-3">
+                                        <label for="environment">Environment</label>
+                                        <select class="form-select" id="environment" name="environment">
+                                            @foreach (EnvironmentType envType in Enum.GetValues(typeof(EnvironmentType)))
+                                            {
+                                                <option value="@envType">@envType</option>
+                                            }
+                                        </select>
+                                    </div>
+                                    <div class="form-check form-switch mb-4">
+                                        <input class="form-check-input" type="checkbox" id="createUrlPublic" name="isPublic" value="true" />
+                                        <label class="form-check-label" for="createUrlPublic">Make this URL public</label>
+                                        <div class="form-text">Public URLs are visible on the shared page without signing in.</div>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary w-100">Add URL</button>
+                                }
+                                else
+                                {
+                                    <div class="alert alert-info" role="alert">
+                                        You don't have any projects yet. Create or request a project before adding URLs.
+                                    </div>
+                                    <button type="submit" class="btn btn-primary w-100" disabled>Add URL</button>
+                                }
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
     }
 
     <div class="modal fade" id="deleteConfirmationModal" tabindex="-1" aria-labelledby="deleteConfirmationModalLabel" aria-hidden="true">
@@ -202,6 +224,7 @@
                 </div>
                 <div class="modal-body">
                     <p>Are you sure you want to delete this URL?</p>
+                    <p class="text-muted mb-0" id="deleteDescription"></p>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -231,8 +254,7 @@
                     }
                     <form asp-controller="Account" asp-action="Login" method="post">
                         @Html.AntiForgeryToken()
-                        <input type="hidden" name="ReturnUrl" value="@Url.Action("Index", "Home")" />
-                        <input type="hidden" name="useModal" value="true" />
+                        <input type="hidden" name="ReturnUrl" value="@loginReturnUrl" />
                         <div class="mb-3">
                             <label for="loginUserName" class="form-label">Username</label>
                             <input type="text" class="form-control" id="loginUserName" name="UserName" required autocomplete="username" />
@@ -245,9 +267,6 @@
                             <input class="form-check-input" type="checkbox" id="loginRememberMe" name="RememberMe" />
                             <label class="form-check-label" for="loginRememberMe">Remember me</label>
                         </div>
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <a asp-controller="Account" asp-action="Login" class="small">Open full login page</a>
-                        </div>
                         <button type="submit" class="btn btn-primary w-100">Login</button>
                     </form>
                 </div>
@@ -255,15 +274,31 @@
         </div>
     </div>
 
-    <div class="container-fluid mt-4">
-        @if (isPublicPage)
-        {
-            <div class="alert alert-warning d-flex align-items-center gap-2" role="alert">
-                <i class="bi bi-globe"></i>
-                <span>This read-only view is available to everyone. Sign in to manage URLs and projects.</span>
-            </div>
-        }
-        <div class="row mt-4">
+      <div class="container-fluid mt-4">
+          @if (isPublicPage)
+          {
+              <div class="alert alert-warning d-flex align-items-center gap-2" role="alert">
+                  <i class="bi bi-globe"></i>
+                  <span>This read-only view is available to everyone. Sign in to manage URLs and projects.</span>
+              </div>
+          }
+          else if (!isAuthenticated)
+          {
+              <div class="alert alert-info d-flex align-items-center gap-2" role="alert">
+                  <i class="bi bi-lock"></i>
+                  <span>Sign in to manage your private URLs. Public links remain available to everyone.</span>
+              </div>
+          }
+
+          @if (!string.IsNullOrEmpty(statusMessage))
+          {
+              <div class="alert alert-@statusType alert-dismissible fade show shadow-sm" role="alert">
+                  @statusMessage
+                  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+          }
+
+          <div class="row mt-4">
             @if (Model.Any())
             {
                 @foreach (EnvironmentType envType in Enum.GetValues(typeof(EnvironmentType)))
@@ -273,32 +308,57 @@
                     {
                         continue;
                     }
-                    <div class="col-md-6 col-lg-3 mb-4">
-                        <h4 class="text-primary">@envType</h4>
-                        @foreach (var url in urlsForEnvironment)
-                        {
-                            var projectName = string.IsNullOrWhiteSpace(url.Tag) ? "Unknown" : url.Tag;
-                            <div class="card p-2 mb-3 shadow-sm" data-project="@projectName">
-                                <h6 class="mb-1" style="color:var(--text-muted-strong);">
-                                    @url.Description
-                                    <span class="badge tag-badge">@projectName</span>
-                                </h6>
-                                <div class="input-group input-group-sm mb-2">
-                                    <input type="text" class="form-control" value="@url.UrlValue" readonly />
-                                    <button class="btn btn-outline-secondary btn-sm" type="button" onclick="copyToClipboard('@url.UrlValue')">Copy</button>
-                                </div>
-                                <div class="btn-group btn-group-sm w-100" role="group">
-                                    <a href="@url.UrlValue" target="_blank" class="btn btn-outline-secondary">Open</a>
-                                    @if (isAdmin)
-                                    {
-                                        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteConfirmationModal" onclick="setDeleteId(@url.Id)">
-                                            Delete
-                                        </button>
-                                    }
-                                </div>
-                            </div>
-                        }
-                    </div>
+                      <div class="col-md-6 col-lg-3 mb-4">
+                          <h4 class="text-primary">@envType</h4>
+                          @foreach (var url in urlsForEnvironment)
+                          {
+                              var projectName = string.IsNullOrWhiteSpace(url.Tag) ? "Unknown" : url.Tag;
+                              var isOwner = !string.IsNullOrEmpty(currentUserId) && string.Equals(url.OwnerId, currentUserId, StringComparison.Ordinal);
+                              var ownerLabel = isOwner ? "You" : (!string.IsNullOrWhiteSpace(url.OwnerName) ? url.OwnerName : "Unassigned");
+                              var canManage = !isPublicPage && (isAdmin || isOwner);
+                              <div class="card p-3 mb-3 shadow-sm" data-project="@projectName">
+                                  <div class="d-flex flex-column gap-2">
+                                      <div>
+                                          <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                                              <h6 class="mb-0" style="color:var(--text-muted-strong);">
+                                                  @url.Description
+                                                  <span class="badge tag-badge">@projectName</span>
+                                              </h6>
+                                              <span class="badge rounded-pill @(url.IsPublic ? "bg-success-subtle text-success" : "bg-secondary-subtle text-body-secondary")">
+                                                  @(url.IsPublic ? "Public" : "Private")
+                                              </span>
+                                          </div>
+                                          @if (isAdmin || isOwner)
+                                          {
+                                              <small class="text-muted">Owner: @ownerLabel</small>
+                                          }
+                                      </div>
+                                      <div class="input-group input-group-sm">
+                                          <input type="text" class="form-control" value="@url.UrlValue" readonly />
+                                          <button class="btn btn-outline-secondary btn-sm" type="button" onclick="copyToClipboard('@url.UrlValue')">Copy</button>
+                                      </div>
+                                      <div class="d-flex flex-wrap gap-2">
+                                          <a href="@url.UrlValue" target="_blank" class="btn btn-outline-secondary btn-sm">Open</a>
+                                          @if (canManage)
+                                          {
+                                              <form asp-action="UpdateVisibility" method="post" class="d-inline">
+                                                  @Html.AntiForgeryToken()
+                                                  <input type="hidden" name="id" value="@url.Id" />
+                                                  <input type="hidden" name="isPublic" value="@(url.IsPublic ? "false" : "true")" />
+                                                  <button type="submit" class="btn btn-sm @(url.IsPublic ? "btn-outline-secondary" : "btn-outline-success")">
+                                                      <i class="bi @(url.IsPublic ? "bi-lock-fill" : "bi-globe") me-1"></i>
+                                                      @(url.IsPublic ? "Make private" : "Make public")
+                                                  </button>
+                                              </form>
+                                              <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteConfirmationModal" data-url-id="@url.Id" data-url-description="@url.Description">
+                                                  Delete
+                                              </button>
+                                          }
+                                      </div>
+                                  </div>
+                              </div>
+                          }
+                      </div>
                 }
             }
             else
@@ -318,10 +378,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        function setDeleteId(id) {
-            document.getElementById('deleteId').value = id;
-        }
-
         function copyToClipboard(url) {
             if (navigator.clipboard) {
                 navigator.clipboard.writeText(url).then(() => alert('URL copied to clipboard'))
@@ -343,6 +399,35 @@
                 document.body.removeChild(temp);
             }
         }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const deleteModal = document.getElementById('deleteConfirmationModal');
+            if (deleteModal) {
+                deleteModal.addEventListener('show.bs.modal', event => {
+                    const button = event.relatedTarget;
+                    if (!button) return;
+
+                    const id = button.getAttribute('data-url-id');
+                    const description = button.getAttribute('data-url-description');
+                    const idInput = document.getElementById('deleteId');
+                    const descriptionEl = document.getElementById('deleteDescription');
+
+                    if (idInput) {
+                        idInput.value = id ?? '';
+                    }
+
+                    if (descriptionEl) {
+                        descriptionEl.textContent = description ?? '';
+                    }
+                });
+            }
+
+            const loginModalEl = document.getElementById('loginModal');
+            if (@(showLoginModal.ToString().ToLowerInvariant()) && loginModalEl) {
+                const loginModal = new bootstrap.Modal(loginModalEl);
+                loginModal.show();
+            }
+        });
 
         (function () {
             const KEY = 'urlbox-theme';

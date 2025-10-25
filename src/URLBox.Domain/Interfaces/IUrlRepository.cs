@@ -6,4 +6,6 @@ public interface IUrlRepository
     Task<IEnumerable<Url>> GetAllAsync();
     Task AddAsync(Url url);
     Task DeleteAsync(int id);
+    Task<Url?> GetByIdAsync(int id);
+    Task UpdateAsync(Url url);
 }

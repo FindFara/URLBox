@@ -12,5 +12,7 @@ namespace URLBox.Presentation.Models
         public string Email { get; set; } = string.Empty;
 
         public IReadOnlyCollection<string> Roles { get; set; } = Array.Empty<string>();
+
+        public int OwnedUrlCount { get; set; }
     }
 }

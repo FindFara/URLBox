@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using URLBox.Application.Services;
 using URLBox.Domain.Entities;
 using URLBox.Presentation.Models;
 
@@ -17,15 +18,18 @@ namespace URLBox.Presentation.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<ApplicationRole> _roleManager;
         private readonly ILogger<AdminController> _logger;
+        private readonly UrlService _urlService;
 
         public AdminController(
             UserManager<ApplicationUser> userManager,
             RoleManager<ApplicationRole> roleManager,
-            ILogger<AdminController> logger)
+            ILogger<AdminController> logger,
+            UrlService urlService)
         {
             _userManager = userManager;
             _roleManager = roleManager;
             _logger = logger;
+            _urlService = urlService;
         }
 
         [HttpGet]
@@ -38,6 +42,15 @@ namespace URLBox.Presentation.Controllers
             var roleEntities = await _roleManager.Roles
                 .OrderBy(r => r.Name)
                 .ToListAsync();
+
+            var allUrls = (await _urlService.GetUrlsAsync()).ToList();
+            var urlsByRole = allUrls
+                .GroupBy(u => string.IsNullOrWhiteSpace(u.Tag) ? "Unassigned" : u.Tag)
+                .ToDictionary(g => g.Key, g => g.Count(), StringComparer.OrdinalIgnoreCase);
+
+            var urlsByOwner = allUrls
+                .GroupBy(u => u.OwnerId)
+                .ToDictionary(g => g.Key, g => g.Count());
 
             var model = new AdminDashboardViewModel
             {
@@ -55,7 +68,8 @@ namespace URLBox.Presentation.Controllers
                     UserId = user.Id,
                     UserName = user.UserName ?? user.Email ?? "(no name)",
                     Email = user.Email ?? string.Empty,
-                    Roles = roles.OrderBy(r => r).ToList()
+                    Roles = roles.OrderBy(r => r).ToList(),
+                    OwnedUrlCount = urlsByOwner.TryGetValue(user.Id, out var owned) ? owned : 0
                 });
 
                 foreach (var role in roles)
@@ -76,9 +90,35 @@ namespace URLBox.Presentation.Controllers
                 {
                     RoleId = role.Id,
                     RoleName = roleName,
-                    AssignedUserCount = count
+                    AssignedUserCount = count,
+                    UrlCount = urlsByRole.TryGetValue(roleName, out var urlCount) ? urlCount : 0
                 });
             }
+
+            model.TotalUsers = model.Users.Count;
+            model.TotalRoles = model.Roles.Count;
+            model.TotalUrls = allUrls.Count;
+            model.PublicUrlCount = allUrls.Count(u => u.IsPublic);
+            model.PrivateUrlCount = model.TotalUrls - model.PublicUrlCount;
+            model.UsersWithoutRoleCount = model.Users.Count(u => !u.Roles.Any());
+
+            model.UsersPerRole = model.Roles
+                .Select(r => new ChartDataPoint { Label = string.IsNullOrEmpty(r.RoleName) ? "(unnamed)" : r.RoleName, Value = r.AssignedUserCount })
+                .Concat(new[]
+                {
+                    new ChartDataPoint
+                    {
+                        Label = "No role",
+                        Value = model.UsersWithoutRoleCount
+                    }
+                })
+                .Where(p => p.Value > 0)
+                .ToList();
+
+            model.UrlsPerRole = urlsByRole
+                .Select(kvp => new ChartDataPoint { Label = kvp.Key, Value = kvp.Value })
+                .OrderByDescending(p => p.Value)
+                .ToList();
 
             return View(model);
         }

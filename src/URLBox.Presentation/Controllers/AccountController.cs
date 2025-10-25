@@ -32,35 +32,34 @@ namespace URLBox.Presentation.Controllers
                 return RedirectToAction("Index", "Home");
             }
 
-            return View(new LoginViewModel
+            if (!string.IsNullOrEmpty(returnUrl))
             {
-                ReturnUrl = string.IsNullOrEmpty(returnUrl) ? Url.Action("Index", "Home") : returnUrl
-            });
+                TempData["LoginReturnUrl"] = returnUrl;
+            }
+
+            TempData["ShowLoginModal"] = true;
+            return RedirectToAction("Index", "Home");
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl = null, bool useModal = false)
+        public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl = null)
         {
             returnUrl ??= model.ReturnUrl ?? Url.Action("Index", "Home");
 
             if (!ModelState.IsValid)
             {
-                if (useModal)
-                {
-                    TempData["LoginError"] = "Please provide both a username and password.";
-                    return RedirectToAction("Index", "Home");
-                }
-
-                model.ReturnUrl = returnUrl;
-                return View(model);
+                TempData["LoginError"] = "Please provide both a username and password.";
+                TempData["ShowLoginModal"] = true;
+                TempData["LoginReturnUrl"] = returnUrl;
+                return RedirectToAction("Index", "Home");
             }
 
             var user = await _userManager.FindByNameAsync(model.UserName);
             if (user is null)
             {
                 _logger.LogWarning("Login attempt failed for unknown user '{UserName}'", model.UserName);
-                return HandleFailedLogin(model, returnUrl, useModal);
+                return HandleFailedLogin(returnUrl);
             }
 
             var result = await _signInManager.PasswordSignInAsync(user, model.Password, model.RememberMe, lockoutOnFailure: false);
@@ -78,19 +77,14 @@ namespace URLBox.Presentation.Controllers
             if (result.IsLockedOut)
             {
                 _logger.LogWarning("User '{UserName}' account locked out.", model.UserName);
-                if (useModal)
-                {
-                    TempData["LoginError"] = "Your account is locked. Please contact the administrator.";
-                    return RedirectToAction("Index", "Home");
-                }
-
-                ModelState.AddModelError(string.Empty, "Your account is locked. Please contact the administrator.");
-                model.ReturnUrl = returnUrl;
-                return View(model);
+                TempData["LoginError"] = "Your account is locked. Please contact the administrator.";
+                TempData["ShowLoginModal"] = true;
+                TempData["LoginReturnUrl"] = returnUrl;
+                return RedirectToAction("Index", "Home");
             }
 
             _logger.LogWarning("Invalid password for user '{UserName}'.", model.UserName);
-            return HandleFailedLogin(model, returnUrl, useModal);
+            return HandleFailedLogin(returnUrl);
         }
 
         [HttpPost]
@@ -106,19 +100,14 @@ namespace URLBox.Presentation.Controllers
             return RedirectToAction("Index", "Home");
         }
 
-        private IActionResult HandleFailedLogin(LoginViewModel model, string? returnUrl, bool useModal)
+        private IActionResult HandleFailedLogin(string? returnUrl)
         {
             const string errorMessage = "Invalid username or password.";
 
-            if (useModal)
-            {
-                TempData["LoginError"] = errorMessage;
-                return RedirectToAction("Index", "Home");
-            }
-
-            ModelState.AddModelError(string.Empty, errorMessage);
-            model.ReturnUrl = returnUrl;
-            return View("Login", model);
+            TempData["LoginError"] = errorMessage;
+            TempData["ShowLoginModal"] = true;
+            TempData["LoginReturnUrl"] = returnUrl ?? Url.Action("Index", "Home");
+            return RedirectToAction("Index", "Home");
         }
     }
 }
