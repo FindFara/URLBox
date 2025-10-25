@@ -1,0 +1,64 @@
+@model URLBox.Presentation.Models.Admin.ManageRolesViewModel
+@using System.Linq
+@{
+    ViewData["Title"] = "Manage Roles";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Manage roles</h1>
+        <p class="text-secondary mb-0">Create roles that map to project access.</p>
+    </div>
+    <a asp-action="Dashboard" class="btn btn-outline-light btn-sm"><i class="bi bi-arrow-left me-1"></i> Back to dashboard</a>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-5">
+        <div class="card bg-secondary text-light shadow-sm border-0 h-100">
+            <div class="card-header border-0">
+                <h2 class="h5 mb-0">Create a new role</h2>
+            </div>
+            <div class="card-body">
+                <form asp-action="CreateRole" method="post" class="d-grid gap-3">
+                    @Html.AntiForgeryToken()
+                    <div>
+                        <label asp-for="CreateRole.RoleName" class="form-label">Role name</label>
+                        <input asp-for="CreateRole.RoleName" class="form-control" placeholder="e.g. DirectDebit" />
+                        <span asp-validation-for="CreateRole.RoleName" class="text-warning small"></span>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Create role</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-7">
+        <div class="card bg-secondary text-light shadow-sm border-0 h-100">
+            <div class="card-header border-0 d-flex justify-content-between align-items-center">
+                <h2 class="h5 mb-0">Existing roles</h2>
+                <span class="badge bg-dark-subtle text-dark">@Model.Roles.Count() total</span>
+            </div>
+            <div class="card-body">
+                @if (!Model.Roles.Any())
+                {
+                    <p class="text-secondary mb-0">No roles have been created yet.</p>
+                }
+                else
+                {
+                    <ul class="list-group list-group-flush">
+                        @foreach (var role in Model.Roles.OrderBy(r => r))
+                        {
+                            <li class="list-group-item bg-secondary text-light d-flex justify-content-between align-items-center">
+                                <span class="fw-semibold">@role</span>
+                                <span class="text-secondary small">Use Admin panel to assign</span>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

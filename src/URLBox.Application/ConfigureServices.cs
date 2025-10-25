@@ -1,17 +1,18 @@
-﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using URLBox.Application.Services;
 
-namespace URLBox.Infrastructure;
-
-public static class ConfigureServices
+namespace URLBox.Application
 {
-    public static IServiceCollection RegisterApplicationServices(this IServiceCollection services, IConfiguration configuration)
+    public static class ConfigureServices
     {
-        services.AddScoped<UrlService>();
-        services.AddScoped<ProjectService>();
-        services.AddScoped<TeamService>();
+        public static IServiceCollection RegisterApplicationServices(this IServiceCollection services, IConfiguration configuration)
+        {
+            services.AddScoped<UrlService>();
+            services.AddScoped<ProjectService>();
+            services.AddScoped<TeamService>();
 
-        return services;
+            return services;
+        }
     }
 }

@@ -1,6 +1,8 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 
-namespace URLBox.Domain.Entities;
-public class ApplicationRole : IdentityRole
+namespace URLBox.Domain.Entities
 {
+    public class ApplicationRole : IdentityRole
+    {
+    }
 }

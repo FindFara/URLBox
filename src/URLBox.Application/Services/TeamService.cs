@@ -1,3 +1,4 @@
+using System.Linq;
 using URLBox.Application.ViewModel;
 using URLBox.Domain.Entities;
 using URLBox.Domain.Interfaces;
@@ -19,23 +20,15 @@ namespace URLBox.Application.Services
             return result.Select(x => new TeamViewModel
             {
                 Id = x.Id,
-                Name = x.Name,
-                Projects = x.Projects.Select(p => new ProjectViewModel
-                {
-                    Name = p.Name,
-                    Id = p.Id,
-                }).ToList(),
-            });
-        }
-        public async Task<IEnumerable<TeamViewModel>> GetTeamsOnly()
-        {
-            var result = await _repository.GetAllAsync();
-            return result.Select(x => new TeamViewModel
-            {
-                Id = x.Id,
                 Name = x.Name
             });
         }
+
+        public async Task<IEnumerable<TeamViewModel>> GetTeamsOnlyAsync()
+        {
+            return await GetTeamsAsync();
+        }
+
         public async Task AddTeamAsync(string name)
         {
             var team = new Team { Name = name };

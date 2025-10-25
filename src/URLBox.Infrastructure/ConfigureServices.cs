@@ -8,43 +8,42 @@ using URLBox.Domain.Interfaces;
 using URLBox.Infrastructure.Persistance;
 using URLBox.Infrastructure.Repositories;
 
-namespace URLBox.Infrastructure;
-
-public static class ConfigureServices
+namespace URLBox.Infrastructure
 {
-    public static IServiceCollection RegisterInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
+    public static class ConfigureServices
     {
-        services.AddScoped<IUrlRepository, UrlRepository>();
-        services.AddScoped<IProjectRepository, ProjectRepository>();
-        services.AddScoped<ITeamRepository, TeamRepository>();
+        public static IServiceCollection RegisterInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
+        {
+            services.AddScoped<IUrlRepository, UrlRepository>();
+            services.AddScoped<IProjectRepository, ProjectRepository>();
+            services.AddScoped<ITeamRepository, TeamRepository>();
 
-        services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseSqlServer(configuration.GetConnectionString("URLBoxConnection")));
+            services.AddDbContext<ApplicationDbContext>(options =>
+                options.UseSqlServer(configuration.GetConnectionString("URLBoxConnection")));
 
-
-        services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
+            services.AddIdentity<ApplicationUser, ApplicationRole>(options =>
                 {
                     options.Password.RequireDigit = false;
-                    options.Password.RequiredLength = 4;
+                    options.Password.RequiredLength = 6;
                     options.Password.RequireNonAlphanumeric = false;
                     options.Password.RequireUppercase = false;
                     options.Password.RequireLowercase = false;
                     options.User.RequireUniqueEmail = false;
                 })
-            .AddEntityFrameworkStores<ApplicationDbContext>()
-            .AddDefaultTokenProviders();
+                .AddEntityFrameworkStores<ApplicationDbContext>()
+                .AddDefaultTokenProviders();
 
-        services.ConfigureApplicationCookie(options =>
-        {
-            options.Cookie.Name = "URLBox.Auth";
-            options.Cookie.HttpOnly = true;
-            options.LoginPath = "/Account/Login";
-            options.AccessDeniedPath = "/Account/Login";
-            options.ExpireTimeSpan = TimeSpan.FromDays(14);
-            options.SlidingExpiration = true;
-        });
+            services.ConfigureApplicationCookie(options =>
+            {
+                options.Cookie.Name = "URLBox.Auth";
+                options.Cookie.HttpOnly = true;
+                options.LoginPath = "/Account/Login";
+                options.AccessDeniedPath = "/Account/Login";
+                options.ExpireTimeSpan = TimeSpan.FromDays(14);
+                options.SlidingExpiration = true;
+            });
 
-
-        return services;
+            return services;
+        }
     }
 }

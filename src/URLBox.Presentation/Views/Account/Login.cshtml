@@ -3,43 +3,40 @@
     ViewData["Title"] = "Login";
 }
 
-<h2 class="mb-4">Login</h2>
-<div class="row">
-    <div class="col-md-6 col-lg-5">
-        <form asp-action="Login" method="post">
-            @Html.AntiForgeryToken()
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-
-            <div class="mb-3">
-                <label asp-for="Email" class="form-label"></label>
-                <input asp-for="Email" class="form-control" />
-                <span asp-validation-for="Email" class="text-danger"></span>
-            </div>
-
-            <div class="mb-3">
-                <label asp-for="Password" class="form-label"></label>
-                <input asp-for="Password" class="form-control" />
-                <span asp-validation-for="Password" class="text-danger"></span>
-            </div>
-
-            <div class="mb-3">
-                <label asp-for="Team" class="form-label"></label>
-                <select asp-for="Team" class="form-select" asp-items="(IEnumerable<SelectListItem>)ViewBag.TeamList">
-                    <option value="">Select a team</option>
-                </select>
-                <span asp-validation-for="Team" class="text-danger"></span>
-            </div>
-
-            <div class="form-check mb-3">
-                <input asp-for="RememberMe" class="form-check-input" />
-                <label asp-for="RememberMe" class="form-check-label"></label>
-            </div>
-
-            <button type="submit" class="btn btn-primary">Login</button>
-        </form>
+<div class="d-flex justify-content-center align-items-center" style="min-height:60vh;">
+    <div class="card bg-secondary text-light shadow-lg border-0" style="min-width: 340px; max-width: 420px;">
+        <div class="card-body p-5">
+            <h2 class="fw-semibold text-center mb-4">Welcome back</h2>
+            <form asp-action="Login" method="post" class="d-grid gap-3">
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+                <div>
+                    <label asp-for="UserName" class="form-label small text-uppercase text-muted">Username</label>
+                    <div class="input-group input-group-lg">
+                        <span class="input-group-text bg-dark border-0 text-light"><i class="bi bi-person"></i></span>
+                        <input asp-for="UserName" class="form-control bg-dark border-0 text-light" placeholder="Enter username" autocomplete="username" />
+                    </div>
+                    <span asp-validation-for="UserName" class="text-warning small"></span>
+                </div>
+                <div>
+                    <label asp-for="Password" class="form-label small text-uppercase text-muted">Password</label>
+                    <div class="input-group input-group-lg">
+                        <span class="input-group-text bg-dark border-0 text-light"><i class="bi bi-lock"></i></span>
+                        <input asp-for="Password" class="form-control bg-dark border-0 text-light" placeholder="Enter password" autocomplete="current-password" />
+                    </div>
+                    <span asp-validation-for="Password" class="text-warning small"></span>
+                </div>
+                <div class="form-check">
+                    <input asp-for="RememberMe" class="form-check-input" />
+                    <label asp-for="RememberMe" class="form-check-label"></label>
+                </div>
+                <input asp-for="ReturnUrl" type="hidden" />
+                <button type="submit" class="btn btn-primary btn-lg w-100">Login</button>
+            </form>
+        </div>
     </div>
 </div>
 
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <partial name="_ValidationScriptsPartial" />
 }

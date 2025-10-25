@@ -1,0 +1,98 @@
+@model URLBox.Presentation.Models.Admin.ManageUsersViewModel
+@using System.Linq
+@{
+    ViewData["Title"] = "Manage Users";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-1">Manage users</h1>
+        <p class="text-secondary mb-0">Assign or remove roles from existing accounts.</p>
+    </div>
+    <a asp-action="Dashboard" class="btn btn-outline-light btn-sm"><i class="bi bi-arrow-left me-1"></i> Back to dashboard</a>
+</div>
+
+<div class="card bg-secondary text-light shadow-sm border-0">
+    <div class="card-body">
+        @if (!Model.Users.Any())
+        {
+            <p class="text-secondary mb-0">There are no users yet.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-dark table-striped align-middle mb-0">
+                    <thead class="table-secondary text-dark">
+                        <tr>
+                            <th scope="col">Username</th>
+                            <th scope="col">Roles</th>
+                            <th scope="col" class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var user in Model.Users)
+                        {
+                            <tr>
+                                <td class="fw-semibold">@user.UserName</td>
+                                <td>
+                                    @if (!user.Roles.Any())
+                                    {
+                                        <span class="badge bg-warning-subtle text-dark">No roles</span>
+                                    }
+                                    else
+                                    {
+                                        foreach (var role in user.Roles)
+                                        {
+                                            <span class="badge bg-primary-subtle text-dark me-1">@role</span>
+                                        }
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <div class="dropdown">
+                                        <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                            Assign role
+                                        </button>
+                                        <div class="dropdown-menu dropdown-menu-dark p-3" style="min-width: 220px;">
+                                            <form asp-action="AssignRole" method="post" class="d-grid gap-2">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="UserId" value="@user.Id" />
+                                                <select class="form-select form-select-sm" name="RoleName" required>
+                                                    <option value="" disabled selected>Select role</option>
+                                                    @foreach (var role in Model.AvailableRoles)
+                                                    {
+                                                        <option value="@role">@role</option>
+                                                    }
+                                                </select>
+                                                <button type="submit" class="btn btn-primary btn-sm">Assign</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                    @if (user.Roles.Any())
+                                    {
+                                        <div class="dropdown d-inline-block ms-2">
+                                            <button class="btn btn-outline-danger btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                Remove role
+                                            </button>
+                                            <div class="dropdown-menu dropdown-menu-dark p-3" style="min-width: 220px;">
+                                                @foreach (var role in user.Roles)
+                                                {
+                                                    <form asp-action="RemoveRole" method="post" class="d-grid gap-2 mb-2">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="userId" value="@user.Id" />
+                                                        <input type="hidden" name="roleName" value="@role" />
+                                                        <div class="small">@role</div>
+                                                        <button type="submit" class="btn btn-outline-danger btn-sm">Remove</button>
+                                                    </form>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

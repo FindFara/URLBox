@@ -1,46 +1,39 @@
-
-using Microsoft.EntityFrameworkCore;
 using System.Linq;
+using Microsoft.EntityFrameworkCore;
 using URLBox.Domain.Entities;
 using URLBox.Domain.Interfaces;
 using URLBox.Infrastructure.Persistance;
 
-namespace URLBox.Infrastructure.Repositories;
-
-public class ProjectRepository : IProjectRepository
+namespace URLBox.Infrastructure.Repositories
 {
-    private readonly ApplicationDbContext _context;
-
-    public ProjectRepository(ApplicationDbContext context)
+    public class ProjectRepository : IProjectRepository
     {
-        _context = context;
-    }
+        private readonly ApplicationDbContext _context;
 
-    public async Task<IEnumerable<Project>> GetAllAsync()
-    {
-        return await _context.Projects
-            .AsNoTracking()
-            .Select(p => new Project
-            {
-                Id = p.Id,
-                Name = p.Name
-            })
-            .ToListAsync();
-    }
-
-    public async Task AddAsync(Project project)
-    {
-        var entity = new Project
+        public ProjectRepository(ApplicationDbContext context)
         {
-            Name = project.Name
-        };
-        _context.Projects.Add(entity);
-        await _context.SaveChangesAsync();
-    }
+            _context = context;
+        }
 
-    public async Task<Project> GetProject(string projectName)
-    {
-        return await _context.Projects
-                             .FirstOrDefaultAsync(p => p.Name == projectName);
+        public async Task<IEnumerable<Project>> GetAllAsync()
+        {
+            return await _context.Projects
+                .AsNoTracking()
+                .OrderBy(p => p.Name)
+                .ToListAsync();
+        }
+
+        public async Task<Project?> GetByNameAsync(string projectName)
+        {
+            return await _context.Projects
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Name == projectName);
+        }
+
+        public async Task AddAsync(Project project)
+        {
+            _context.Projects.Add(project);
+            await _context.SaveChangesAsync();
+        }
     }
 }

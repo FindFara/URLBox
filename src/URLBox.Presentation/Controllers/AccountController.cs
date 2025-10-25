@@ -1,4 +1,3 @@
-using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -10,58 +9,29 @@ namespace URLBox.Presentation.Controllers
     [AllowAnonymous]
     public class AccountController : Controller
     {
-        private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
+        private readonly UserManager<ApplicationUser> _userManager;
         private readonly ILogger<AccountController> _logger;
 
-        public AccountController(UserManager<ApplicationUser> userManager,
-                                 SignInManager<ApplicationUser> signInManager,
-                                 ILogger<AccountController> logger)
+        public AccountController(
+            UserManager<ApplicationUser> userManager,
+            SignInManager<ApplicationUser> signInManager,
+            ILogger<AccountController> logger)
         {
             _userManager = userManager;
             _signInManager = signInManager;
-            _teamService = teamService;
             _logger = logger;
         }
 
         [HttpGet]
-        public async Task<IActionResult> Register()
+        public IActionResult Login(string? returnUrl = null)
         {
-            await PopulateTeamsAsync();
-            return View(new RegisterViewModel());
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Register(RegisterViewModel model)
-        {
-            if (!ModelState.IsValid)
+            if (User.Identity?.IsAuthenticated ?? false)
             {
-                var user = new ApplicationUser { UserName = model.UserName };
-                var result = await _userManager.CreateAsync(user, model.Password);
-                if (result.Succeeded)
-                {
-                    await _userManager.AddToRoleAsync(user , "Member");
-                    _logger.LogInformation("User created a new account with password.");
-                    await _signInManager.SignInAsync(user, isPersistent: false);
-
-                return RedirectToAction("Index", "Home");
+                return RedirectToLocal(returnUrl);
             }
 
-            foreach (var error in result.Errors)
-            {
-                ModelState.AddModelError(string.Empty, error.Description);
-            }
-
-            await PopulateTeamsAsync();
-            return View(model);
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> Login()
-        {
-            await PopulateTeamsAsync();
-            return View(new LoginViewModel());
+            return View(new LoginViewModel { ReturnUrl = returnUrl });
         }
 
         [HttpPost]
@@ -70,36 +40,34 @@ namespace URLBox.Presentation.Controllers
         {
             if (!ModelState.IsValid)
             {
-                await PopulateTeamsAsync();
                 return View(model);
             }
 
-            var user = await _userManager.FindByEmailAsync(model.Email);
+            var user = await _userManager.FindByNameAsync(model.UserName);
             if (user is null)
             {
-                ModelState.AddModelError(string.Empty, "Invalid login attempt.");
-                await PopulateTeamsAsync();
+                ModelState.AddModelError(string.Empty, "Invalid username or password.");
                 return View(model);
             }
 
-            if (!await _userManager.IsInRoleAsync(user, model.Team))
+            var result = await _signInManager.PasswordSignInAsync(user.UserName!, model.Password, model.RememberMe, lockoutOnFailure: false);
+            if (result.Succeeded)
             {
-                var result = await _signInManager.PasswordSignInAsync(model.UserName, model.Password, model.RememberMe, lockoutOnFailure: false);
-                if (result.Succeeded)
-                {
-                    _logger.LogInformation("User logged in.");
-                    return RedirectToAction("Index", "Home");
-                }
-                if (result.IsLockedOut)
-                {
-                    ModelState.AddModelError(string.Empty, "User account locked out.");
-                    return View("~/Views/Home/Index.cshtml", indexModel);
-                }
-                ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+                _logger.LogInformation("User {UserName} logged in.", model.UserName);
+                return RedirectToLocal(model.ReturnUrl);
             }
-            return View("~/Views/Home/Index.cshtml", indexModel);
+
+            if (result.IsLockedOut)
+            {
+                ModelState.AddModelError(string.Empty, "User account locked out.");
+                return View(model);
+            }
+
+            ModelState.AddModelError(string.Empty, "Invalid username or password.");
+            return View(model);
         }
 
+        [Authorize]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Logout()
@@ -109,16 +77,19 @@ namespace URLBox.Presentation.Controllers
             return RedirectToAction("Index", "Home");
         }
 
-        private async Task PopulateTeamsAsync()
+        private IActionResult RedirectToLocal(string? returnUrl)
         {
-            var teams = await _teamService.GetTeamsOnly();
-            ViewBag.TeamList = teams
-                .Select(team => new SelectListItem
-                {
-                    Value = team.Name,
-                    Text = team.Name
-                })
-                .ToList();
+            if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+            {
+                return Redirect(returnUrl);
+            }
+
+            if (User.IsInRole("Admin"))
+            {
+                return RedirectToAction("Dashboard", "Admin");
+            }
+
+            return RedirectToAction("Index", "Home");
         }
     }
 }

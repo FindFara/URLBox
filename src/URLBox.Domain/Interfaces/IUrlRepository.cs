@@ -1,9 +1,15 @@
 using URLBox.Domain.Entities;
 
-namespace URLBox.Domain.Interfaces;
-public interface IUrlRepository
+namespace URLBox.Domain.Interfaces
 {
-    Task<IEnumerable<Url>> GetAllAsync();
-    Task AddAsync(Url url);
-    Task DeleteAsync(int id);
+    public interface IUrlRepository
+    {
+        Task<IEnumerable<Url>> GetAllAsync();
+
+        Task<IEnumerable<Url>> GetByProjectNamesAsync(IEnumerable<string> projectNames);
+
+        Task AddAsync(Url url);
+
+        Task DeleteAsync(int id);
+    }
 }

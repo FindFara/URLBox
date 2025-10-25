@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace URLBox.Domain.Entities
 {
@@ -6,8 +6,10 @@ namespace URLBox.Domain.Entities
     {
         [Key]
         public int Id { get; set; }
-        public string Name { get; set; }
-        public List<Project> Projects { get; set; }
 
+        [Required]
+        public required string Name { get; set; }
+
+        public ICollection<Project> Projects { get; set; } = new List<Project>();
     }
 }

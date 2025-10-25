@@ -1,4 +1,4 @@
-﻿using URLBox.Domain.Enums;
+using URLBox.Domain.Enums;
 
 namespace URLBox.Application.ViewModel
 {
@@ -10,11 +10,8 @@ namespace URLBox.Application.ViewModel
 
         public string Description { get; set; } = string.Empty;
 
-        public string Tag { get; set; } = string.Empty;
-
-        public int Order { get; set; }
+        public string ProjectName { get; set; } = string.Empty;
 
         public EnvironmentType Environment { get; set; }
-
     }
 }

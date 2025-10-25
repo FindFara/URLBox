@@ -1,0 +1,82 @@
+@model URLBox.Presentation.Models.Admin.AdminDashboardViewModel
+@using System.Linq
+@{
+    ViewData["Title"] = "Admin Dashboard";
+}
+
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="card bg-secondary text-light shadow-sm border-0 h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <h2 class="display-6 mb-0">@Model.TotalUsers</h2>
+                        <p class="text-uppercase text-muted small mb-0">Users</p>
+                    </div>
+                    <i class="bi bi-people fs-1 text-primary"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-secondary text-light shadow-sm border-0 h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <h2 class="display-6 mb-0">@Model.TotalRoles</h2>
+                        <p class="text-uppercase text-muted small mb-0">Roles</p>
+                    </div>
+                    <i class="bi bi-shield-lock fs-1 text-info"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-secondary text-light shadow-sm border-0 h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <h2 class="display-6 mb-0">@Model.RoleDistribution.Sum(r => r.Value)</h2>
+                        <p class="text-uppercase text-muted small mb-0">Assignments</p>
+                    </div>
+                    <i class="bi bi-diagram-3 fs-1 text-warning"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card bg-secondary text-light shadow-sm border-0">
+    <div class="card-header border-0 d-flex justify-content-between align-items-center">
+        <h3 class="h5 mb-0">Role distribution</h3>
+        <a asp-action="ManageUsers" class="btn btn-outline-light btn-sm"><i class="bi bi-gear me-1"></i> Manage users</a>
+    </div>
+    <div class="card-body">
+        @if (!Model.RoleDistribution.Any())
+        {
+            <p class="text-secondary mb-0">No roles assigned yet.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-dark table-striped mb-0">
+                    <thead class="table-secondary text-dark">
+                        <tr>
+                            <th scope="col">Role</th>
+                            <th scope="col">Assigned users</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var role in Model.RoleDistribution.OrderByDescending(r => r.Value))
+                        {
+                            <tr>
+                                <td>@role.Key</td>
+                                <td>@role.Value</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

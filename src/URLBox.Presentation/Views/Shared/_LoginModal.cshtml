@@ -1,0 +1,38 @@
+@model URLBox.Presentation.Models.LoginViewModel
+<div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-secondary text-light shadow-lg border-0">
+            <div class="modal-header border-0">
+                <h5 class="modal-title" id="loginModalLabel">Welcome back</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body pt-0">
+                <form asp-controller="Account" asp-action="Login" method="post" class="d-grid gap-3">
+                    @Html.AntiForgeryToken()
+                    <div>
+                        <label asp-for="UserName" class="form-label small text-uppercase text-muted">Username</label>
+                        <div class="input-group input-group-lg">
+                            <span class="input-group-text bg-dark border-0 text-light"><i class="bi bi-person"></i></span>
+                            <input asp-for="UserName" class="form-control bg-dark border-0 text-light" placeholder="Enter username" autocomplete="username" />
+                        </div>
+                        <span asp-validation-for="UserName" class="text-warning small"></span>
+                    </div>
+                    <div>
+                        <label asp-for="Password" class="form-label small text-uppercase text-muted">Password</label>
+                        <div class="input-group input-group-lg">
+                            <span class="input-group-text bg-dark border-0 text-light"><i class="bi bi-lock"></i></span>
+                            <input asp-for="Password" class="form-control bg-dark border-0 text-light" placeholder="Enter password" autocomplete="current-password" />
+                        </div>
+                        <span asp-validation-for="Password" class="text-warning small"></span>
+                    </div>
+                    <div class="form-check">
+                        <input asp-for="RememberMe" class="form-check-input" />
+                        <label asp-for="RememberMe" class="form-check-label"></label>
+                    </div>
+                    <input asp-for="ReturnUrl" type="hidden" value="@Context.Request.Path" />
+                    <button type="submit" class="btn btn-primary btn-lg w-100">Login</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

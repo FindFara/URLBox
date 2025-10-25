@@ -1,7 +1,11 @@
+using System;
+using System.Linq;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 using URLBox.Application.Services;
+using URLBox.Application.ViewModel;
 using URLBox.Domain.Enums;
 using URLBox.Domain.Models;
 
@@ -13,25 +17,46 @@ namespace URLBox.Presentation.Controllers
         private readonly ILogger<HomeController> _logger;
         private readonly UrlService _urlService;
         private readonly ProjectService _projectService;
-        private readonly TeamService _teamService;
 
-        public HomeController(ILogger<HomeController> logger, UrlService urlService, ProjectService projectService, TeamService teamService)
+        public HomeController(
+            ILogger<HomeController> logger,
+            UrlService urlService,
+            ProjectService projectService)
         {
             _logger = logger;
             _urlService = urlService;
             _projectService = projectService;
-            _teamService = teamService;
         }
 
         [AllowAnonymous]
         public async Task<IActionResult> Index()
         {
-            var urls = await _urlService.GetUrlsAsync();
-            var projects = await _projectService.GetProjectsAsync();
-            var teams = await _teamService.GetTeamsOnly();
+            var projects = (await _projectService.GetProjectsAsync()).ToList();
+            IEnumerable<UrlViewModel> urls = new List<UrlViewModel>();
+
+            if (User.Identity?.IsAuthenticated ?? false)
+            {
+                if (User.IsInRole("Admin"))
+                {
+                    urls = await _urlService.GetUrlsAsync();
+                }
+                else
+                {
+                    var allowedProjects = User.Claims
+                        .Where(c => c.Type == ClaimTypes.Role && !string.Equals(c.Value, "Admin", StringComparison.OrdinalIgnoreCase))
+                        .Select(c => c.Value)
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .ToList();
+
+                    urls = await _urlService.GetUrlsForProjectsAsync(allowedProjects);
+                    projects = projects
+                        .Where(p => allowedProjects.Contains(p.Name, StringComparer.OrdinalIgnoreCase))
+                        .ToList();
+                }
+            }
 
             ViewBag.Projects = projects;
-            ViewBag.teams = teams;
+            ViewBag.HasAccess = User.Identity?.IsAuthenticated ?? false;
             return View(urls.ToList());
         }
 
@@ -39,11 +64,12 @@ namespace URLBox.Presentation.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddUrl(string url, string description, EnvironmentType environment, string project)
         {
-            if (!string.IsNullOrEmpty(url))
+            if (!string.IsNullOrWhiteSpace(url) && !string.IsNullOrWhiteSpace(project))
             {
                 await _urlService.AddUrlAsync(url, description, environment, project);
             }
-            return RedirectToAction("Index");
+
+            return RedirectToAction(nameof(Index));
         }
 
         [HttpPost]
@@ -54,7 +80,8 @@ namespace URLBox.Presentation.Controllers
             {
                 await _projectService.AddProjectAsync(projectName);
             }
-            return RedirectToAction("Index");
+
+            return RedirectToAction(nameof(Index));
         }
 
         [HttpPost]
@@ -62,7 +89,7 @@ namespace URLBox.Presentation.Controllers
         public async Task<IActionResult> DeleteUrl(int id)
         {
             await _urlService.DeleteUrlAsync(id);
-            return RedirectToAction("Index");
+            return RedirectToAction(nameof(Index));
         }
 
         [AllowAnonymous]

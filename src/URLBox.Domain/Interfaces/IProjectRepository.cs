@@ -1,10 +1,13 @@
 using URLBox.Domain.Entities;
 
-namespace URLBox.Domain.Interfaces;
-public interface IProjectRepository
+namespace URLBox.Domain.Interfaces
 {
-    Task<IEnumerable<Project>> GetAllAsync();
-    Task AddAsync(Project project);
-    Task<Project> GetProject(string projectName);
+    public interface IProjectRepository
+    {
+        Task<IEnumerable<Project>> GetAllAsync();
 
+        Task<Project?> GetByNameAsync(string projectName);
+
+        Task AddAsync(Project project);
+    }
 }
