@@ -352,13 +352,13 @@ namespace URLBox.Infrastructure.Migrations
 
             modelBuilder.Entity("URLBox.Domain.Entities.Url", b =>
                 {
-                    b.HasOne("URLBox.Domain.Entities.Project", "Projects")
+                    b.HasOne("URLBox.Domain.Entities.Project", "Project")
                         .WithMany("Urls")
                         .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Projects");
+                    b.Navigation("Project");
                 });
 
             modelBuilder.Entity("URLBox.Domain.Entities.Project", b =>

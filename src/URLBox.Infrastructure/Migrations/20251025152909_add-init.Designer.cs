@@ -12,8 +12,8 @@ using URLBox.Infrastructure.Persistance;
 namespace URLBox.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250927080328_addurlboxu")]
-    partial class addurlboxu
+    [Migration("20251025152909_add-init")]
+    partial class addinit
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -235,17 +235,31 @@ namespace URLBox.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("RoleId")
+                    b.Property<int>("TeamsId")
                         .HasColumnType("int");
-
-                    b.Property<string>("RolesId")
-                        .HasColumnType("nvarchar(450)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("RolesId");
+                    b.HasIndex("TeamsId");
 
                     b.ToTable("Projects");
+                });
+
+            modelBuilder.Entity("URLBox.Domain.Entities.Team", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Teams");
                 });
 
             modelBuilder.Entity("URLBox.Domain.Entities.Url", b =>
@@ -263,18 +277,16 @@ namespace URLBox.Infrastructure.Migrations
                     b.Property<int>("Environment")
                         .HasColumnType("int");
 
-                    b.Property<int>("Order")
+                    b.Property<int>("ProjectId")
                         .HasColumnType("int");
-
-                    b.Property<string>("Tag")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("UrlValue")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ProjectId");
 
                     b.ToTable("Urls");
                 });
@@ -332,14 +344,32 @@ namespace URLBox.Infrastructure.Migrations
 
             modelBuilder.Entity("URLBox.Domain.Entities.Project", b =>
                 {
-                    b.HasOne("URLBox.Domain.Entities.ApplicationRole", "Roles")
+                    b.HasOne("URLBox.Domain.Entities.Team", "Teams")
                         .WithMany("Projects")
-                        .HasForeignKey("RolesId");
+                        .HasForeignKey("TeamsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
-                    b.Navigation("Roles");
+                    b.Navigation("Teams");
                 });
 
-            modelBuilder.Entity("URLBox.Domain.Entities.ApplicationRole", b =>
+            modelBuilder.Entity("URLBox.Domain.Entities.Url", b =>
+                {
+                    b.HasOne("URLBox.Domain.Entities.Project", "Project")
+                        .WithMany("Urls")
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Project");
+                });
+
+            modelBuilder.Entity("URLBox.Domain.Entities.Project", b =>
+                {
+                    b.Navigation("Urls");
+                });
+
+            modelBuilder.Entity("URLBox.Domain.Entities.Team", b =>
                 {
                     b.Navigation("Projects");
                 });
