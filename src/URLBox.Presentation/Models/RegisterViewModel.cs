@@ -5,7 +5,11 @@ namespace URLBox.Presentation.Models
     public class RegisterViewModel
     {
         [Required]
-        public required string UserName{ get; set; }
+        public required string UserName { get; set; }
+
+        [Required]
+        [EmailAddress]
+        public required string Email { get; set; }
 
         [Required]
         [DataType(DataType.Password)]

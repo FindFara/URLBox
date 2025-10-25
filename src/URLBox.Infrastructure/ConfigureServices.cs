@@ -1,12 +1,15 @@
-﻿using Microsoft.AspNetCore.Identity;
+using System;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using URLBox.Domain.Entities;
 using URLBox.Domain.Interfaces;
 using URLBox.Infrastructure.Persistance;
 using URLBox.Infrastructure.Repositories;
 
 namespace URLBox.Infrastructure;
+
 public static class ConfigureServices
 {
     public static IServiceCollection RegisterInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
@@ -15,15 +18,23 @@ public static class ConfigureServices
         services.AddScoped<IProjectRepository, ProjectRepository>();
         services.AddScoped<ITeamRepository, TeamRepository>();
 
-
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseSqlServer(configuration.GetConnectionString("URLBoxConnection")));
 
-       services.AddIdentity<IdentityUser, IdentityRole>()
+        services.AddIdentity<ApplicationUser, ApplicationRole>()
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
 
-        return services;
+        services.ConfigureApplicationCookie(options =>
+        {
+            options.Cookie.Name = "URLBox.Auth";
+            options.Cookie.HttpOnly = true;
+            options.LoginPath = "/Account/Login";
+            options.AccessDeniedPath = "/Account/Login";
+            options.ExpireTimeSpan = TimeSpan.FromDays(14);
+            options.SlidingExpiration = true;
+        });
 
+        return services;
     }
 }

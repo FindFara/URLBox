@@ -14,5 +14,8 @@ namespace URLBox.Presentation.Models
 
         [Display(Name = "Remember me")]
         public bool RememberMe { get; set; } = false;
+
+        [Required]
+        public string Team { get; set; } = string.Empty;
     }
 }
