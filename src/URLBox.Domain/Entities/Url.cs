@@ -7,14 +7,18 @@ namespace URLBox.Domain.Entities
     {
         [Key]
         public int Id { get; set; }
-        public int ProjectId { get; set; }
 
         [Required]
-        public string UrlValue { get; set; }
+        public string UrlValue { get; set; } = string.Empty;
+
         [Required]
-        public string Description { get; set; }
+        public string Description { get; set; } = string.Empty;
+
         [Required]
         public EnvironmentType Environment { get; set; }
-        public Project Projects { get; set; }
+
+        public int ProjectId { get; set; }
+
+        public Project? Project { get; set; }
     }
 }

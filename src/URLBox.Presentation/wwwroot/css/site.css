@@ -123,6 +123,8 @@ html[data-bs-theme="dark"] .offcanvas {
     padding: .2em .5em;
     border-radius: 10px;
     margin-left: 5px;
+    background-color: var(--badge-asapi-bg);
+    color: #fff;
 }
 
 .bg-asapi {

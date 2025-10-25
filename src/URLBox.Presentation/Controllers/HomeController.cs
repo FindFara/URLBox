@@ -1,7 +1,11 @@
+using System;
+using System.Collections.Generic;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 using URLBox.Application.Services;
+using URLBox.Domain.Entities;
 using URLBox.Domain.Enums;
 using URLBox.Domain.Models;
 
@@ -10,53 +14,84 @@ namespace URLBox.Presentation.Controllers
     [Authorize]
     public class HomeController : Controller
     {
-        private readonly ILogger<HomeController> _logger;
         private readonly UrlService _urlService;
         private readonly ProjectService _projectService;
-        private readonly TeamService _teamService;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public HomeController(ILogger<HomeController> logger, UrlService urlService, ProjectService projectService, TeamService teamService)
+        public HomeController(
+            UrlService urlService,
+            ProjectService projectService,
+            UserManager<ApplicationUser> userManager)
         {
-            _logger = logger;
             _urlService = urlService;
             _projectService = projectService;
-            _teamService = teamService;
+            _userManager = userManager;
         }
 
         [AllowAnonymous]
         public async Task<IActionResult> Index()
         {
-            var urls = await _urlService.GetUrlsAsync();
-            var projects = await _projectService.GetProjectsAsync();
-            var teams = await _teamService.GetTeamsOnly();
+            var projects = (await _projectService.GetProjectsAsync()).ToList();
+            IEnumerable<string>? allowedProjects = Array.Empty<string>();
+
+            if (User.Identity?.IsAuthenticated == true)
+            {
+                var user = await _userManager.GetUserAsync(User);
+                if (user is not null)
+                {
+                    var roles = await _userManager.GetRolesAsync(user);
+                    if (roles.Contains("Administrator", StringComparer.OrdinalIgnoreCase))
+                    {
+                        allowedProjects = null;
+                    }
+                    else
+                    {
+                        allowedProjects = roles;
+                    }
+                }
+            }
+
+            var urls = (await _urlService.GetUrlsAsync(allowedProjects)).ToList();
+
+            if (allowedProjects is not null)
+            {
+                var allowedSet = new HashSet<string>(allowedProjects, StringComparer.OrdinalIgnoreCase);
+                projects = projects.Where(p => allowedSet.Contains(p.Name)).ToList();
+            }
 
             ViewBag.Projects = projects;
-            ViewBag.teams = teams;
-            return View(urls.ToList());
+            ViewBag.LoginError = TempData["LoginError"];
+
+            return View(urls);
         }
 
+        [Authorize(Roles = "Administrator")]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddUrl(string url, string description, EnvironmentType environment, string project)
         {
-            if (!string.IsNullOrEmpty(url))
+            if (!string.IsNullOrWhiteSpace(url) && !string.IsNullOrWhiteSpace(project))
             {
                 await _urlService.AddUrlAsync(url, description, environment, project);
             }
+
             return RedirectToAction("Index");
         }
 
+        [Authorize(Roles = "Administrator")]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddProject(string projectName)
         {
             if (!string.IsNullOrWhiteSpace(projectName))
             {
-                await _projectService.AddProjectAsync(projectName);
+                await _projectService.AddProjectAsync(projectName.Trim());
             }
+
             return RedirectToAction("Index");
         }
 
+        [Authorize(Roles = "Administrator")]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteUrl(int id)
