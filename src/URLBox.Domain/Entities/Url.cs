@@ -20,5 +20,7 @@ namespace URLBox.Domain.Entities
         public int ProjectId { get; set; }
 
         public Project? Project { get; set; }
+
+        public bool IsPublic { get; set; }
     }
 }

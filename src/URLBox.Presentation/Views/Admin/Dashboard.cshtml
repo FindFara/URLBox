@@ -1,4 +1,6 @@
 @model URLBox.Presentation.Models.AdminDashboardViewModel
+@using System.Linq
+@using System.Text.Json
 @{
     ViewData["Title"] = "Admin dashboard";
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -31,10 +33,58 @@
         </div>
     }
 
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-xl-4 g-3 mb-4">
+        <div class="col">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <span class="text-primary fs-3"><i class="bi bi-people-fill"></i></span>
+                    <div>
+                        <p class="text-muted text-uppercase small mb-1">Users</p>
+                        <h4 class="mb-0 fw-semibold">@Model.TotalUsers</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <span class="text-primary fs-3"><i class="bi bi-shield-lock-fill"></i></span>
+                    <div>
+                        <p class="text-muted text-uppercase small mb-1">Roles</p>
+                        <h4 class="mb-0 fw-semibold">@Model.TotalRoles</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <span class="text-primary fs-3"><i class="bi bi-link-45deg"></i></span>
+                    <div>
+                        <p class="text-muted text-uppercase small mb-1">Total URLs</p>
+                        <h4 class="mb-0 fw-semibold">@Model.TotalUrls</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <span class="text-primary fs-3"><i class="bi bi-globe2"></i></span>
+                    <div>
+                        <p class="text-muted text-uppercase small mb-1">Public URLs</p>
+                        <h4 class="mb-0 fw-semibold">@Model.TotalPublicUrls</h4>
+                        <p class="text-muted small mb-0">@Model.TotalPrivateUrls private</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row g-4">
         <div class="col-12 col-xl-7">
-            <div class="card shadow-sm h-100">
-                <div class="card-header bg-transparent py-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-body-tertiary border-0 py-3">
                     <div class="d-flex justify-content-between align-items-center">
                         <h2 class="h5 mb-0">Users</h2>
                         <span class="badge text-bg-secondary">@Model.Users.Count</span>
@@ -123,11 +173,29 @@
                 </div>
             </div>
         </div>
-        <div class="col-12 col-xl-5">
-            <div class="card shadow-sm h-100">
-                <div class="card-header bg-transparent py-3">
+        <div class="col-12 col-xl-5 d-flex flex-column gap-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-body-tertiary border-0 py-3">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h2 class="h5 mb-0">Roles</h2>
+                        <h2 class="h6 mb-0">URLs per role</h2>
+                        <span class="badge text-bg-secondary">@Model.RoleChartValues.Sum()</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if (Model.RoleChartValues.Any())
+                    {
+                        <canvas id="roleUrlChart" height="220"></canvas>
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-0">Add roles to see their URL distribution.</p>
+                    }
+                </div>
+            </div>
+            <div class="card border-0 shadow-sm flex-grow-1">
+                <div class="card-header bg-body-tertiary border-0 py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h2 class="h6 mb-0">Roles</h2>
                         <span class="badge text-bg-secondary">@Model.Roles.Count</span>
                     </div>
                 </div>
@@ -141,10 +209,13 @@
                         <ul class="list-group list-group-flush">
                             @foreach (var role in Model.Roles)
                             {
-                                <li class="list-group-item d-flex justify-content-between align-items-center gap-3">
-                                    <div>
+                                <li class="list-group-item d-flex justify-content-between align-items-start gap-3">
+                                    <div class="flex-grow-1">
                                         <div class="fw-medium">@role.RoleName</div>
-                                        <small class="text-muted">@role.AssignedUserCount user@(role.AssignedUserCount == 1 ? string.Empty : "s")</small>
+                                        <div class="small text-muted d-flex flex-wrap gap-3">
+                                            <span><i class="bi bi-people me-1"></i>@role.AssignedUserCount user@(role.AssignedUserCount == 1 ? string.Empty : "s")</span>
+                                            <span><i class="bi bi-link-45deg me-1"></i>@role.UrlCount URL@(role.UrlCount == 1 ? string.Empty : "s")</span>
+                                        </div>
                                     </div>
                                     <div class="btn-group" role="group">
                                         <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="modal"
@@ -358,7 +429,44 @@
 </div>
 
 @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js" integrity="sha384-wZjl+J1ytY1/6Yr2vNhbbX6YsJhBKt3vnDnN/SUXOc6Bx/OVCkXbkqVKgf/mBlC6" crossorigin="anonymous"></script>
     <script>
+        (() => {
+            const labels = @Html.Raw(JsonSerializer.Serialize(Model.RoleChartLabels));
+            const values = @Html.Raw(JsonSerializer.Serialize(Model.RoleChartValues));
+            const ctx = document.getElementById('roleUrlChart');
+            const bodyColor = getComputedStyle(document.documentElement).getPropertyValue('--bs-body-color').trim() || '#212529';
+
+            if (ctx && Array.isArray(labels) && labels.length > 0) {
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels,
+                        datasets: [{
+                            label: 'URLs',
+                            data: values,
+                            backgroundColor: '#0d6efd',
+                            borderRadius: 6,
+                        }]
+                    },
+                    options: {
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            x: {
+                                ticks: { color: bodyColor }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                ticks: { stepSize: 1, color: bodyColor }
+                            }
+                        }
+                    }
+                });
+            }
+        })();
+
         const assignRoleModal = document.getElementById('assignRoleModal');
         if (assignRoleModal) {
             assignRoleModal.addEventListener('show.bs.modal', event => {

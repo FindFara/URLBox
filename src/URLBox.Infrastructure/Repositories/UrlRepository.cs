@@ -24,6 +24,13 @@ public class UrlRepository : IUrlRepository
             .ToListAsync();
     }
 
+    public async Task<Url?> GetByIdAsync(int id)
+    {
+        return await _context.Urls
+            .Include(u => u.Project)
+            .FirstOrDefaultAsync(u => u.Id == id);
+    }
+
     public async Task AddAsync(Url url)
     {
         _context.Urls.Add(url);
@@ -38,5 +45,11 @@ public class UrlRepository : IUrlRepository
             _context.Urls.Remove(entity);
             await _context.SaveChangesAsync();
         }
+    }
+
+    public async Task UpdateAsync(Url url)
+    {
+        _context.Urls.Update(url);
+        await _context.SaveChangesAsync();
     }
 }

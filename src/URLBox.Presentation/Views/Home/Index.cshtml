@@ -2,13 +2,21 @@
 @using System.Linq
 @using URLBox.Domain.Enums
 @using URLBox.Application.ViewModel
-@{
+@{ 
     Layout = null;
     var projects = ViewBag.Projects as IEnumerable<ProjectViewModel> ?? Enumerable.Empty<ProjectViewModel>();
     var loginError = ViewBag.LoginError as string;
     var isAuthenticated = User.Identity?.IsAuthenticated ?? false;
     var isAdmin = User.IsInRole("Administrator");
     var isPublicPage = (ViewBag.IsPublicPage as bool?) ?? false;
+    var statusMessage = ViewBag.IndexStatus as string;
+    var showLoginModal = (ViewBag.ShowLoginModal as bool?) ?? false;
+    var defaultReturnUrl = Url.Action("Index", "Home") ?? "/";
+    var loginReturnUrl = (ViewBag.LoginReturnUrl as string) ?? defaultReturnUrl;
+    var canManageUrls = isAuthenticated && !isPublicPage && projects.Any();
+    Func<string, bool> canManageProject = projectName =>
+        !isPublicPage && (isAdmin || (isAuthenticated && !string.IsNullOrWhiteSpace(projectName) && User.IsInRole(projectName)));
+    var shouldShowLoginModal = showLoginModal || !string.IsNullOrEmpty(loginError);
 }
 
 <!doctype html>
@@ -59,7 +67,7 @@
             </button>
         }
 
-        @if (isAdmin)
+        @if (canManageUrls)
         {
             <button type="button" class="btn btn-primary btn-icon" data-bs-toggle="modal" data-bs-target="#addUrlModal" data-bs-placement="right" title="Add URL">
                 <i class="bi bi-plus-lg"></i>
@@ -99,7 +107,7 @@
                     </button>
                 </form>
 
-                @if (isAdmin)
+                @if (canManageUrls)
                 {
                     <button type="button" class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#addUrlModal" data-bs-dismiss="offcanvas">
                         <i class="bi bi-plus-lg me-1"></i> Add URL
@@ -147,7 +155,7 @@
         <button type="button" class="btn btn-secondary btn-sm" onclick="applyProjectFilter('all')">Show all</button>
     </div>
 
-    @if (isAdmin)
+    @if (canManageUrls)
     {
         <div class="modal fade" id="addUrlModal" tabindex="-1" aria-labelledby="addUrlModalLabel" aria-hidden="true">
             <div class="modal-dialog">
@@ -184,6 +192,10 @@
                                         <option value="@envType">@envType</option>
                                     }
                                 </select>
+                            </div>
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="addUrlPublic" name="isPublic" value="true" />
+                                <label class="form-check-label" for="addUrlPublic">Make this URL public</label>
                             </div>
                             <button type="submit" class="btn btn-primary w-100">Add URL</button>
                         </form>
@@ -231,8 +243,7 @@
                     }
                     <form asp-controller="Account" asp-action="Login" method="post">
                         @Html.AntiForgeryToken()
-                        <input type="hidden" name="ReturnUrl" value="@Url.Action("Index", "Home")" />
-                        <input type="hidden" name="useModal" value="true" />
+                        <input type="hidden" name="ReturnUrl" value="@loginReturnUrl" />
                         <div class="mb-3">
                             <label for="loginUserName" class="form-label">Username</label>
                             <input type="text" class="form-control" id="loginUserName" name="UserName" required autocomplete="username" />
@@ -244,9 +255,6 @@
                         <div class="form-check mb-3">
                             <input class="form-check-input" type="checkbox" id="loginRememberMe" name="RememberMe" />
                             <label class="form-check-label" for="loginRememberMe">Remember me</label>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <a asp-controller="Account" asp-action="Login" class="small">Open full login page</a>
                         </div>
                         <button type="submit" class="btn btn-primary w-100">Login</button>
                     </form>
@@ -261,6 +269,14 @@
             <div class="alert alert-warning d-flex align-items-center gap-2" role="alert">
                 <i class="bi bi-globe"></i>
                 <span>This read-only view is available to everyone. Sign in to manage URLs and projects.</span>
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(statusMessage))
+        {
+            <div class="alert alert-info alert-dismissible fade show shadow-sm" role="alert">
+                <i class="bi bi-info-circle me-1"></i>
+                @statusMessage
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         }
         <div class="row mt-4">
@@ -278,21 +294,38 @@
                         @foreach (var url in urlsForEnvironment)
                         {
                             var projectName = string.IsNullOrWhiteSpace(url.Tag) ? "Unknown" : url.Tag;
-                            <div class="card p-2 mb-3 shadow-sm" data-project="@projectName">
-                                <h6 class="mb-1" style="color:var(--text-muted-strong);">
-                                    @url.Description
+                            var canManageCurrent = canManageProject(projectName);
+                            var visibilityLabel = url.IsPublic ? "Make private" : "Make public";
+                            var visibilityIcon = url.IsPublic ? "bi-eye-slash" : "bi-eye";
+                            <div class="card p-3 mb-3 shadow-sm" data-project="@projectName">
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <h6 class="mb-0 flex-grow-1 text-body-emphasis">@url.Description</h6>
                                     <span class="badge tag-badge">@projectName</span>
-                                </h6>
-                                <div class="input-group input-group-sm mb-2">
+                                    @if (url.IsPublic)
+                                    {
+                                        <span class="badge text-bg-success">Public</span>
+                                    }
+                                </div>
+                                <div class="input-group input-group-sm mb-3">
                                     <input type="text" class="form-control" value="@url.UrlValue" readonly />
                                     <button class="btn btn-outline-secondary btn-sm" type="button" onclick="copyToClipboard('@url.UrlValue')">Copy</button>
                                 </div>
-                                <div class="btn-group btn-group-sm w-100" role="group">
-                                    <a href="@url.UrlValue" target="_blank" class="btn btn-outline-secondary">Open</a>
-                                    @if (isAdmin)
+                                <div class="d-flex flex-wrap gap-2">
+                                    <a href="@url.UrlValue" target="_blank" class="btn btn-outline-secondary btn-sm flex-grow-1">
+                                        <i class="bi bi-box-arrow-up-right me-1"></i> Open
+                                    </a>
+                                    @if (canManageCurrent)
                                     {
-                                        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteConfirmationModal" onclick="setDeleteId(@url.Id)">
-                                            Delete
+                                        <form asp-action="SetUrlVisibility" method="post" class="d-inline-flex flex-grow-1">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@url.Id" />
+                                            <input type="hidden" name="isPublic" value="@(url.IsPublic ? "false" : "true")" />
+                                            <button type="submit" class="btn btn-outline-success btn-sm w-100">
+                                                <i class="bi @visibilityIcon me-1"></i>@visibilityLabel
+                                            </button>
+                                        </form>
+                                        <button type="button" class="btn btn-outline-danger btn-sm flex-grow-1" data-bs-toggle="modal" data-bs-target="#deleteConfirmationModal" onclick="setDeleteId(@url.Id)">
+                                            <i class="bi bi-trash me-1"></i> Delete
                                         </button>
                                     }
                                 </div>
@@ -433,15 +466,17 @@
             })();
         })();
     </script>
-    @if (!string.IsNullOrEmpty(loginError))
-    {
-        <script>
-            const loginModalEl = document.getElementById('loginModal');
-            if (loginModalEl) {
-                const loginModal = new bootstrap.Modal(loginModalEl);
-                loginModal.show();
+    <script>
+        (() => {
+            const shouldShowLogin = @(shouldShowLoginModal.ToString().ToLowerInvariant());
+            if (shouldShowLogin) {
+                const loginModalEl = document.getElementById('loginModal');
+                if (loginModalEl) {
+                    const loginModal = new bootstrap.Modal(loginModalEl);
+                    loginModal.show();
+                }
             }
-        </script>
-    }
+        })();
+    </script>
 </body>
 </html>

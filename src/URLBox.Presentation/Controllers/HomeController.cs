@@ -8,6 +8,7 @@ using URLBox.Application.Services;
 using URLBox.Domain.Entities;
 using URLBox.Domain.Enums;
 using URLBox.Domain.Models;
+using System.Linq;
 
 namespace URLBox.Presentation.Controllers
 {
@@ -40,16 +41,36 @@ namespace URLBox.Presentation.Controllers
             return RenderIndexAsync(isPublicPage: true);
         }
 
-        [Authorize(Roles = "Administrator")]
+        [Authorize]
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> AddUrl(string url, string description, EnvironmentType environment, string project)
+        public async Task<IActionResult> AddUrl(string url, string description, EnvironmentType environment, string project, bool isPublic = false)
         {
-            if (!string.IsNullOrWhiteSpace(url) && !string.IsNullOrWhiteSpace(project))
+            url = url?.Trim() ?? string.Empty;
+            project = project?.Trim() ?? string.Empty;
+            description = description?.Trim() ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(project))
             {
-                await _urlService.AddUrlAsync(url, description, environment, project);
+                TempData["IndexStatus"] = "Please provide a URL and select a project.";
+                return RedirectToAction("Index");
             }
 
+            var user = await _userManager.GetUserAsync(User);
+            if (user is null)
+            {
+                return Challenge();
+            }
+
+            var roles = await _userManager.GetRolesAsync(user);
+            if (!IsAdministrator(roles) && !HasProjectAccess(roles, project))
+            {
+                TempData["IndexStatus"] = "You are not allowed to add URLs for that project.";
+                return RedirectToAction("Index");
+            }
+
+            await _urlService.AddUrlAsync(url, description, environment, project, isPublic);
+            TempData["IndexStatus"] = "URL added successfully.";
             return RedirectToAction("Index");
         }
 
@@ -66,12 +87,63 @@ namespace URLBox.Presentation.Controllers
             return RedirectToAction("Index");
         }
 
-        [Authorize(Roles = "Administrator")]
+        [Authorize]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteUrl(int id)
         {
+            var user = await _userManager.GetUserAsync(User);
+            if (user is null)
+            {
+                return Challenge();
+            }
+
+            var url = await _urlService.GetUrlAsync(id);
+            if (url is null)
+            {
+                TempData["IndexStatus"] = "The selected URL could not be found.";
+                return RedirectToAction("Index");
+            }
+
+            var roles = await _userManager.GetRolesAsync(user);
+            if (!IsAdministrator(roles) && !HasProjectAccess(roles, url.Project?.Name))
+            {
+                TempData["IndexStatus"] = "You are not allowed to delete that URL.";
+                return RedirectToAction("Index");
+            }
+
             await _urlService.DeleteUrlAsync(id);
+            TempData["IndexStatus"] = "URL deleted.";
+            return RedirectToAction("Index");
+        }
+
+        [Authorize]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SetUrlVisibility(int id, bool isPublic)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user is null)
+            {
+                return Challenge();
+            }
+
+            var url = await _urlService.GetUrlAsync(id);
+            if (url is null)
+            {
+                TempData["IndexStatus"] = "The selected URL could not be found.";
+                return RedirectToAction("Index");
+            }
+
+            var roles = await _userManager.GetRolesAsync(user);
+            if (!IsAdministrator(roles) && !HasProjectAccess(roles, url.Project?.Name))
+            {
+                TempData["IndexStatus"] = "You are not allowed to update that URL.";
+                return RedirectToAction("Index");
+            }
+
+            await _urlService.UpdateVisibilityAsync(id, isPublic);
+            TempData["IndexStatus"] = isPublic ? "URL marked as public." : "URL marked as private.";
             return RedirectToAction("Index");
         }
 
@@ -86,6 +158,7 @@ namespace URLBox.Presentation.Controllers
         {
             var projects = (await _projectService.GetProjectsAsync()).ToList();
             IEnumerable<string>? allowedProjects = Array.Empty<string>();
+            var includePublicUrls = false;
 
             if (User.Identity?.IsAuthenticated == true)
             {
@@ -93,18 +166,21 @@ namespace URLBox.Presentation.Controllers
                 if (user is not null)
                 {
                     var roles = await _userManager.GetRolesAsync(user);
-                    if (roles.Contains("Administrator", StringComparer.OrdinalIgnoreCase))
+                    if (IsAdministrator(roles))
                     {
                         allowedProjects = null;
                     }
                     else
                     {
                         allowedProjects = roles;
+                        includePublicUrls = true;
                     }
                 }
             }
 
-            var urls = (await _urlService.GetUrlsAsync(allowedProjects)).ToList();
+            var urls = isPublicPage
+                ? (await _urlService.GetUrlsAsync(publicOnly: true)).ToList()
+                : (await _urlService.GetUrlsAsync(allowedProjects, includePublicUrls)).ToList();
 
             if (allowedProjects is not null)
             {
@@ -114,10 +190,26 @@ namespace URLBox.Presentation.Controllers
 
             ViewBag.Projects = projects;
             ViewBag.LoginError = TempData["LoginError"];
+            ViewBag.LoginReturnUrl = TempData["LoginReturnUrl"];
+            ViewBag.ShowLoginModal = TempData["ShowLoginModal"];
+            ViewBag.IndexStatus = TempData["IndexStatus"];
             ViewBag.IsPublicPage = isPublicPage;
             ViewData["Title"] = isPublicPage ? "Public URLs" : "URL dashboard";
 
             return View("Index", urls);
+        }
+
+        private static bool IsAdministrator(ICollection<string> roles)
+            => roles.Any(role => string.Equals(role, "Administrator", StringComparison.OrdinalIgnoreCase));
+
+        private static bool HasProjectAccess(IEnumerable<string> roles, string? projectName)
+        {
+            if (string.IsNullOrWhiteSpace(projectName))
+            {
+                return false;
+            }
+
+            return roles.Any(role => string.Equals(role, projectName, StringComparison.OrdinalIgnoreCase));
         }
     }
 }
