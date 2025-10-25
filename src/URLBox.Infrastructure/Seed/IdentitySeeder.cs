@@ -35,10 +35,9 @@ namespace URLBox.Infrastructure.Seed
                 }
             }
 
-            var adminSection = configuration.GetSection("AdminUser");
-            var adminUserName = adminSection.GetValue<string>("UserName") ?? "admin";
-            var adminEmail = adminSection.GetValue<string>("Email") ?? "admin@example.com";
-            var adminPassword = adminSection.GetValue<string>("Password") ?? "Admin123!";
+            var adminUserName = configuration.GetSection("AdminUser:UserName").Value ?? "admin";
+            var adminEmail = configuration.GetSection("AdminUser:Email").Value ?? "admin@example.com";
+            var adminPassword = configuration.GetSection("AdminUser:Password").Value ?? "Admin123!";
 
             var adminUser = await userManager.FindByNameAsync(adminUserName);
             if (adminUser is null)

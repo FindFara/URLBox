@@ -59,3 +59,4 @@ namespace URLBox.Presentation.Models
         [StringLength(256)]
         public string RoleName { get; set; } = string.Empty;
     }
+}

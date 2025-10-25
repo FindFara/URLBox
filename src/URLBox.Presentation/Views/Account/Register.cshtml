@@ -34,14 +34,6 @@
                 <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
             </div>
 
-            <div class="mb-3">
-                <label asp-for="Team" class="form-label"></label>
-                <select asp-for="Team" class="form-select" asp-items="(IEnumerable<SelectListItem>)ViewBag.TeamList">
-                    <option value="">Select a team</option>
-                </select>
-                <span asp-validation-for="Team" class="text-danger"></span>
-            </div>
-
             <button type="submit" class="btn btn-primary">Register</button>
         </form>
     </div>
