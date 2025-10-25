@@ -17,7 +17,8 @@ html {
 }
 
 body {
-    margin-bottom: 60px;
+    margin-bottom: 0;
+    background-color: var(--surface);
 }
 
 /* === Design tokens (Light) === */
@@ -49,6 +50,10 @@ html[data-bs-theme="dark"] {
     border: 1px solid var(--card-border);
     border-radius: 8px;
     background-color: var(--surface);
+}
+
+.navbar {
+    transition: background-color .3s ease;
 }
 
 .modal-content {
