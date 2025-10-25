@@ -5,17 +5,14 @@ namespace URLBox.Presentation.Models
     public class LoginViewModel
     {
         [Required]
-        [EmailAddress]
-        public string Email { get; set; } = string.Empty;
+        public string UserName { get; set; }
 
         [Required]
         [DataType(DataType.Password)]
-        public string Password { get; set; } = string.Empty;
+        public string Password { get; set; }
 
         [Display(Name = "Remember me")]
         public bool RememberMe { get; set; } = false;
 
-        [Required]
-        public string Team { get; set; } = string.Empty;
     }
 }

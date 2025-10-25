@@ -2,8 +2,6 @@ using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
-using URLBox.Application.Services;
 using URLBox.Domain.Entities;
 using URLBox.Presentation.Models;
 
@@ -14,12 +12,10 @@ namespace URLBox.Presentation.Controllers
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
-        private readonly TeamService _teamService;
         private readonly ILogger<AccountController> _logger;
 
         public AccountController(UserManager<ApplicationUser> userManager,
                                  SignInManager<ApplicationUser> signInManager,
-                                 TeamService teamService,
                                  ILogger<AccountController> logger)
         {
             _userManager = userManager;
@@ -41,33 +37,13 @@ namespace URLBox.Presentation.Controllers
         {
             if (!ModelState.IsValid)
             {
-                await PopulateTeamsAsync();
-                return View(model);
-            }
-
-            var user = new ApplicationUser
-            {
-                UserName = model.UserName,
-                Email = model.Email
-            };
-
-            var result = await _userManager.CreateAsync(user, model.Password);
-            if (result.Succeeded)
-            {
-                var roleResult = await _userManager.AddToRoleAsync(user, model.Team);
-                if (!roleResult.Succeeded)
+                var user = new ApplicationUser { UserName = model.UserName };
+                var result = await _userManager.CreateAsync(user, model.Password);
+                if (result.Succeeded)
                 {
-                    foreach (var error in roleResult.Errors)
-                    {
-                        ModelState.AddModelError(string.Empty, error.Description);
-                    }
-
-                    await PopulateTeamsAsync();
-                    return View(model);
-                }
-
-                _logger.LogInformation("User created a new account with password.");
-                await _signInManager.SignInAsync(user, isPersistent: false);
+                    await _userManager.AddToRoleAsync(user , "Member");
+                    _logger.LogInformation("User created a new account with password.");
+                    await _signInManager.SignInAsync(user, isPersistent: false);
 
                 return RedirectToAction("Index", "Home");
             }
@@ -108,29 +84,20 @@ namespace URLBox.Presentation.Controllers
 
             if (!await _userManager.IsInRoleAsync(user, model.Team))
             {
-                ModelState.AddModelError(string.Empty, "You are not a member of the selected team.");
-                await PopulateTeamsAsync();
-                return View(model);
-            }
-
-            var result = await _signInManager.PasswordSignInAsync(user, model.Password, model.RememberMe, lockoutOnFailure: false);
-            if (result.Succeeded)
-            {
-                _logger.LogInformation("User logged in.");
-                return RedirectToAction("Index", "Home");
-            }
-
-            if (result.IsLockedOut)
-            {
-                ModelState.AddModelError(string.Empty, "User account locked out.");
-            }
-            else
-            {
+                var result = await _signInManager.PasswordSignInAsync(model.UserName, model.Password, model.RememberMe, lockoutOnFailure: false);
+                if (result.Succeeded)
+                {
+                    _logger.LogInformation("User logged in.");
+                    return RedirectToAction("Index", "Home");
+                }
+                if (result.IsLockedOut)
+                {
+                    ModelState.AddModelError(string.Empty, "User account locked out.");
+                    return View("~/Views/Home/Index.cshtml", indexModel);
+                }
                 ModelState.AddModelError(string.Empty, "Invalid login attempt.");
             }
-
-            await PopulateTeamsAsync();
-            return View(model);
+            return View("~/Views/Home/Index.cshtml", indexModel);
         }
 
         [HttpPost]

@@ -224,31 +224,20 @@
                     <form asp-controller="Account" asp-action="Login" method="post">
                         @Html.AntiForgeryToken()
                         <div class="mb-3">
-                            <label for="loginEmail" class="form-label">Email</label>
-                            <input type="email" class="form-control form-control-sm" id="loginEmail" name="Email" required />
+                            <label for="loginUserName" class="form-label">UserName</label>
+                            <input type="text" class="form-control form-control-sm" id="loginUserName" name="UserName" required />
                         </div>
                         <div class="mb-3">
                             <label for="loginPassword" class="form-label">Password</label>
                             <input type="password" class="form-control form-control-sm" id="loginPassword" name="Password" required />
                         </div>
-                        <div class="form-group mb-3">
-                            <label for="loginTeam">Teams:</label>
-                            <select class="form-control form-control-sm" id="loginTeam" name="Team" required>
-                                @{
-                                    var teams = ViewBag.teams as IEnumerable<TeamViewModel> ?? Enumerable.Empty<TeamViewModel>();
-                                }
-                                @foreach (var team in teams)
-                                {
-                                    <option value="@team.Name">@team.Name</option>
-                                }
-                            </select>
-                        </div>
                         <br />
                         <div class="mb-3 form-check">
                             <input type="checkbox" class="form-check-input" id="loginRememberMe" name="RememberMe" />
+                            @Html.CheckBox("RememberMe", false, new { @class = "form-check-input", id = "loginRememberMe" })
                             <label class="form-check-label" for="loginRememberMe">Remember me</label>
                         </div>
-
+                        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
                         <button type="submit" class="btn btn-primary btn-sm w-100">Login</button>
                     </form>
                 </div>

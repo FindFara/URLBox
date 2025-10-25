@@ -21,7 +21,5 @@ namespace URLBox.Presentation.Models
         [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
         public required string ConfirmPassword { get; set; }
 
-        [Required]
-        public required string Team { get; set; }
     }
 }
