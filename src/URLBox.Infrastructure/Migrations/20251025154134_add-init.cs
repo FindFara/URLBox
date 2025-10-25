@@ -198,6 +198,8 @@ namespace URLBox.Infrastructure.Migrations
                     UrlValue = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Environment = table.Column<int>(type: "int", nullable: false),
+                    IsPublic = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedByUserId = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     ProjectId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>

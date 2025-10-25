@@ -194,10 +194,18 @@
                                         }
                                     </select>
                                 </div>
-                                <div class="form-check form-switch mb-4">
-                                    <input type="hidden" name="isPublic" value="false" />
-                                    <input class="form-check-input" type="checkbox" id="isPublic" name="isPublic" value="true" />
-                                    <label class="form-check-label" for="isPublic">Make this URL visible to everyone</label>
+                                <div class="mb-3">
+                                    <label class="form-label d-block">Visible to everyone?</label>
+
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" id="isPublicYes" name="IsPublic" value="true" checked>
+                                        <label class="form-check-label" for="isPublicYes">Yes</label>
+                                    </div>
+
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" id="isPublicNo" name="IsPublic" value="false">
+                                        <label class="form-check-label" for="isPublicNo">No</label>
+                                    </div>
                                 </div>
                                 <button type="submit" class="btn btn-primary w-100">Add URL</button>
                             </form>

@@ -12,7 +12,7 @@ using URLBox.Infrastructure.Persistance;
 namespace URLBox.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251025152909_add-init")]
+    [Migration("20251025154134_add-init")]
     partial class addinit
     {
         /// <inheritdoc />
@@ -270,12 +270,18 @@ namespace URLBox.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("CreatedByUserId")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("Environment")
                         .HasColumnType("int");
+
+                    b.Property<bool>("IsPublic")
+                        .HasColumnType("bit");
 
                     b.Property<int>("ProjectId")
                         .HasColumnType("int");
