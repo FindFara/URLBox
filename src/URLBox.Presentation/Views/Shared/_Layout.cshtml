@@ -1,22 +1,133 @@
+@using Microsoft.AspNetCore.Identity
+@using URLBox.Domain.Entities
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+
+@{
+    var isAuthenticated = SignInManager.IsSignedIn(User);
+    var userName = isAuthenticated ? (User.Identity?.Name ?? "Account") : null;
+    var isAdmin = User.IsInRole("Administrator");
+}
+
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-bs-theme="light">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - URL Box</title>
+    <script>
+        const storedTheme = localStorage.getItem('urlbox-theme');
+        if (storedTheme) {
+            document.documentElement.setAttribute('data-bs-theme', storedTheme);
+        }
+    </script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
     <link rel="stylesheet" href="~/css/site.css" />
     @RenderSection("Styles", required: false)
 </head>
-<body>
-    <div class="container py-4">
-        <main role="main" class="pb-3">
+<body class="d-flex flex-column min-vh-100">
+    <header class="border-bottom bg-body">
+        <nav class="navbar navbar-expand-lg bg-body-tertiary">
+            <div class="container-fluid">
+                <a class="navbar-brand d-flex align-items-center gap-2" asp-controller="Home" asp-action="Index">
+                    <i class="bi bi-box"></i>
+                    <span>URL Box</span>
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="mainNavbar">
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Home" asp-action="Index">Dashboard</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Home" asp-action="Public">Public URLs</a>
+                        </li>
+                        @if (isAdmin)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Admin" asp-action="Dashboard">Admin</a>
+                            </li>
+                        }
+                    </ul>
+                    <div class="d-flex align-items-center gap-3">
+                        <button type="button" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1" id="themeToggle" aria-label="Toggle theme">
+                            <i class="bi" id="themeToggleIcon"></i>
+                            <span class="d-none d-lg-inline">Theme</span>
+                        </button>
+                        <ul class="navbar-nav flex-row flex-wrap align-items-center mb-0">
+                            @if (isAuthenticated)
+                            {
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="bi bi-person-circle me-1"></i>@userName
+                                    </a>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li>
+                                            <form asp-controller="Account" asp-action="Logout" method="post" class="px-3">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-link dropdown-item px-0">Sign out</button>
+                                            </form>
+                                        </li>
+                                    </ul>
+                                </li>
+                            }
+                            else
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-controller="Account" asp-action="Login">Sign in</a>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="container flex-grow-1 py-4">
+        <main role="main" class="pb-4">
             @RenderBody()
         </main>
     </div>
 
+    <footer class="py-3 border-top bg-body">
+        <div class="container text-center small text-muted">
+            &copy; @DateTime.UtcNow.Year URL Box
+        </div>
+    </footer>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script>
+        (() => {
+            const icon = document.getElementById('themeToggleIcon');
+            const toggle = document.getElementById('themeToggle');
+
+            const setTheme = theme => {
+                document.documentElement.setAttribute('data-bs-theme', theme);
+                localStorage.setItem('urlbox-theme', theme);
+                if (icon) {
+                    icon.className = theme === 'dark' ? 'bi bi-moon-stars' : 'bi bi-sun';
+                }
+                if (toggle) {
+                    toggle.classList.remove('btn-outline-secondary', 'btn-outline-light');
+                    toggle.classList.add(theme === 'dark' ? 'btn-outline-light' : 'btn-outline-secondary');
+                }
+            };
+
+            const current = document.documentElement.getAttribute('data-bs-theme') || 'light';
+            setTheme(current);
+
+            if (toggle) {
+                toggle.addEventListener('click', () => {
+                    const active = document.documentElement.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
+                    setTheme(active);
+                });
+            }
+        })();
+    </script>
     @RenderSection("Scripts", required: false)
 </body>
 </html>

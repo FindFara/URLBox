@@ -6,7 +6,7 @@ namespace URLBox.Presentation.Models
     {
         public List<UserRoleViewModel> Users { get; set; } = new();
 
-        public List<string> Roles { get; set; } = new();
+        public List<RoleSummaryViewModel> Roles { get; set; } = new();
 
         public string? StatusMessage { get; set; }
     }

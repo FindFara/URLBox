@@ -29,40 +29,15 @@ namespace URLBox.Presentation.Controllers
         }
 
         [AllowAnonymous]
-        public async Task<IActionResult> Index()
+        public Task<IActionResult> Index()
         {
-            var projects = (await _projectService.GetProjectsAsync()).ToList();
-            IEnumerable<string>? allowedProjects = Array.Empty<string>();
+            return RenderIndexAsync(isPublicPage: false);
+        }
 
-            if (User.Identity?.IsAuthenticated == true)
-            {
-                var user = await _userManager.GetUserAsync(User);
-                if (user is not null)
-                {
-                    var roles = await _userManager.GetRolesAsync(user);
-                    if (roles.Contains("Administrator", StringComparer.OrdinalIgnoreCase))
-                    {
-                        allowedProjects = null;
-                    }
-                    else
-                    {
-                        allowedProjects = roles;
-                    }
-                }
-            }
-
-            var urls = (await _urlService.GetUrlsAsync(allowedProjects)).ToList();
-
-            if (allowedProjects is not null)
-            {
-                var allowedSet = new HashSet<string>(allowedProjects, StringComparer.OrdinalIgnoreCase);
-                projects = projects.Where(p => allowedSet.Contains(p.Name)).ToList();
-            }
-
-            ViewBag.Projects = projects;
-            ViewBag.LoginError = TempData["LoginError"];
-
-            return View(urls);
+        [AllowAnonymous]
+        public Task<IActionResult> Public()
+        {
+            return RenderIndexAsync(isPublicPage: true);
         }
 
         [Authorize(Roles = "Administrator")]
@@ -105,6 +80,44 @@ namespace URLBox.Presentation.Controllers
         public IActionResult Error()
         {
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+        }
+
+        private async Task<IActionResult> RenderIndexAsync(bool isPublicPage)
+        {
+            var projects = (await _projectService.GetProjectsAsync()).ToList();
+            IEnumerable<string>? allowedProjects = Array.Empty<string>();
+
+            if (User.Identity?.IsAuthenticated == true)
+            {
+                var user = await _userManager.GetUserAsync(User);
+                if (user is not null)
+                {
+                    var roles = await _userManager.GetRolesAsync(user);
+                    if (roles.Contains("Administrator", StringComparer.OrdinalIgnoreCase))
+                    {
+                        allowedProjects = null;
+                    }
+                    else
+                    {
+                        allowedProjects = roles;
+                    }
+                }
+            }
+
+            var urls = (await _urlService.GetUrlsAsync(allowedProjects)).ToList();
+
+            if (allowedProjects is not null)
+            {
+                var allowedSet = new HashSet<string>(allowedProjects, StringComparer.OrdinalIgnoreCase);
+                projects = projects.Where(p => allowedSet.Contains(p.Name)).ToList();
+            }
+
+            ViewBag.Projects = projects;
+            ViewBag.LoginError = TempData["LoginError"];
+            ViewBag.IsPublicPage = isPublicPage;
+            ViewData["Title"] = isPublicPage ? "Public URLs" : "URL dashboard";
+
+            return View("Index", urls);
         }
     }
 }
