@@ -37,17 +37,34 @@
 
     <!-- Slim Left Sidebar (Desktop ≥ lg) -->
     <aside id="leftSidebar" class="d-none d-lg-flex flex-column align-items-center gap-3">
-        <!-- Add -->
-        <button type="button" class="btn btn-primary btn-icon"
-                data-bs-toggle="modal" data-bs-target="#loginModal"
-                data-bs-placement="right" title="Login">
-            <i class="bi bi-person"></i>
-        </button>
-        <button type="button" class="btn btn-primary btn-icon"
-                data-bs-toggle="modal" data-bs-target="#addUrlModal"
-                data-bs-placement="right" title="Add">
-            <i class="bi bi-plus-lg"></i>
-        </button>
+        <!-- Account -->
+        @if (User.Identity?.IsAuthenticated ?? false)
+        {
+            <form asp-controller="Account" asp-action="Logout" method="post" class="m-0">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-outline-secondary btn-icon"
+                        data-bs-placement="right" title="Logout">
+                    <i class="bi bi-box-arrow-right"></i>
+                </button>
+            </form>
+        }
+        else
+        {
+            <button type="button" class="btn btn-primary btn-icon"
+                    data-bs-toggle="modal" data-bs-target="#loginModal"
+                    data-bs-placement="right" title="Login">
+                <i class="bi bi-person"></i>
+            </button>
+        }
+
+        @if (User.Identity?.IsAuthenticated ?? false)
+        {
+            <button type="button" class="btn btn-primary btn-icon"
+                    data-bs-toggle="modal" data-bs-target="#addUrlModal"
+                    data-bs-placement="right" title="Add">
+                <i class="bi bi-plus-lg"></i>
+            </button>
+        }
         <!-- Projects (filter) -->
         <button id="projectToggleDesktop" type="button" class="btn btn-outline-secondary btn-icon"
                 data-bs-placement="right" title="">
@@ -72,16 +89,29 @@
             <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
         </div>
         <div class="offcanvas-body d-flex flex-column gap-3">
-            <button type="button" class="btn btn-primary w-100"
-                    data-bs-toggle="modal" data-bs-target="#loginModal"
-                    data-bs-dismiss="offcanvas">
-                <i class="bi bi-plus-lg me-1"></i> Login
-            </button>
-            <button type="button" class="btn btn-primary w-100"
-                    data-bs-toggle="modal" data-bs-target="#addUrlModal"
-                    data-bs-dismiss="offcanvas">
-                <i class="bi bi-plus-lg me-1"></i> Add
-            </button>
+            @if (User.Identity?.IsAuthenticated ?? false)
+            {
+                <form asp-controller="Account" asp-action="Logout" method="post" class="d-grid">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-outline-secondary w-100" data-bs-dismiss="offcanvas">
+                        <i class="bi bi-box-arrow-right me-1"></i> Logout
+                    </button>
+                </form>
+
+                <button type="button" class="btn btn-primary w-100"
+                        data-bs-toggle="modal" data-bs-target="#addUrlModal"
+                        data-bs-dismiss="offcanvas">
+                    <i class="bi bi-plus-lg me-1"></i> Add
+                </button>
+            }
+            else
+            {
+                <button type="button" class="btn btn-primary w-100"
+                        data-bs-toggle="modal" data-bs-target="#loginModal"
+                        data-bs-dismiss="offcanvas">
+                    <i class="bi bi-person me-1"></i> Login
+                </button>
+            }
             <!-- Projects (filter) -->
             <button type="button" class="btn btn-outline-secondary w-100"
                     data-bs-toggle="offcanvas" data-bs-target="#projectMenu"
@@ -202,8 +232,8 @@
                             <input type="password" class="form-control form-control-sm" id="loginPassword" name="Password" required />
                         </div>
                         <div class="form-group mb-3">
-                            <label for="team">Teams:</label>
-                            <select class="form-control form-control-sm" id="team" name="team" required>
+                            <label for="loginTeam">Teams:</label>
+                            <select class="form-control form-control-sm" id="loginTeam" name="Team" required>
                                 @{
                                     var teams = ViewBag.teams as IEnumerable<TeamViewModel> ?? Enumerable.Empty<TeamViewModel>();
                                 }
@@ -245,9 +275,12 @@
                             </div>
                             <div class="btn-group btn-group-sm w-100" role="group">
                                 <a href="@url.UrlValue" target="_blank" class="btn btn-outline-secondary">Open</a>
-                                <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteConfirmationModal" onclick="setDeleteId(@url.Id)">
-                                    Delete
-                                </button>
+                                @if (User.Identity?.IsAuthenticated ?? false)
+                                {
+                                    <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteConfirmationModal" onclick="setDeleteId(@url.Id)">
+                                        Delete
+                                    </button>
+                                }
                             </div>
                         </div>
                     }

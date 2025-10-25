@@ -1,4 +1,3 @@
-using URLBox.Domain.Entities;
 using URLBox.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -21,6 +20,7 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllerRoute(

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 using URLBox.Application.Services;
 using URLBox.Domain.Enums;
@@ -6,6 +7,7 @@ using URLBox.Domain.Models;
 
 namespace URLBox.Presentation.Controllers
 {
+    [Authorize]
     public class HomeController : Controller
     {
         private readonly ILogger<HomeController> _logger;
@@ -21,6 +23,7 @@ namespace URLBox.Presentation.Controllers
             _teamService = teamService;
         }
 
+        [AllowAnonymous]
         public async Task<IActionResult> Index()
         {
             var urls = await _urlService.GetUrlsAsync();
@@ -33,6 +36,7 @@ namespace URLBox.Presentation.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddUrl(string url, string description, EnvironmentType environment, string project)
         {
             if (!string.IsNullOrEmpty(url))
@@ -43,6 +47,7 @@ namespace URLBox.Presentation.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddProject(string projectName)
         {
             if (!string.IsNullOrWhiteSpace(projectName))
@@ -52,12 +57,15 @@ namespace URLBox.Presentation.Controllers
             return RedirectToAction("Index");
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteUrl(int id)
         {
             await _urlService.DeleteUrlAsync(id);
             return RedirectToAction("Index");
         }
 
+        [AllowAnonymous]
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {

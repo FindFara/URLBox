@@ -1,0 +1,45 @@
+@model URLBox.Presentation.Models.LoginViewModel
+@{
+    ViewData["Title"] = "Login";
+}
+
+<h2 class="mb-4">Login</h2>
+<div class="row">
+    <div class="col-md-6 col-lg-5">
+        <form asp-action="Login" method="post">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="mb-3">
+                <label asp-for="Email" class="form-label"></label>
+                <input asp-for="Email" class="form-control" />
+                <span asp-validation-for="Email" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Password" class="form-label"></label>
+                <input asp-for="Password" class="form-control" />
+                <span asp-validation-for="Password" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Team" class="form-label"></label>
+                <select asp-for="Team" class="form-select" asp-items="(IEnumerable<SelectListItem>)ViewBag.TeamList">
+                    <option value="">Select a team</option>
+                </select>
+                <span asp-validation-for="Team" class="text-danger"></span>
+            </div>
+
+            <div class="form-check mb-3">
+                <input asp-for="RememberMe" class="form-check-input" />
+                <label asp-for="RememberMe" class="form-check-label"></label>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Login</button>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
