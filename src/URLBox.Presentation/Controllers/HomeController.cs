@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using System.Diagnostics;
 using URLBox.Application.Services;
+using URLBox.Application.ViewModel;
 using URLBox.Domain.Entities;
 using URLBox.Domain.Enums;
 using URLBox.Domain.Models;
@@ -17,6 +19,12 @@ namespace URLBox.Presentation.Controllers
         private readonly UrlService _urlService;
         private readonly ProjectService _projectService;
         private readonly UserManager<ApplicationUser> _userManager;
+
+        private const string StatusMessageKey = "StatusMessage";
+        private const string StatusMessageTypeKey = "StatusMessageType";
+        private const string LoginErrorKey = "LoginError";
+        private const string ShowLoginModalKey = "ShowLoginModal";
+        private const string LoginReturnUrlKey = "LoginReturnUrl";
 
         public HomeController(
             UrlService urlService,
@@ -40,14 +48,44 @@ namespace URLBox.Presentation.Controllers
             return RenderIndexAsync(isPublicPage: true);
         }
 
-        [Authorize(Roles = "Administrator")]
+        [Authorize]
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> AddUrl(string url, string description, EnvironmentType environment, string project)
+        public async Task<IActionResult> AddUrl(string url, string description, EnvironmentType environment, string project, bool isPublic = false)
         {
-            if (!string.IsNullOrWhiteSpace(url) && !string.IsNullOrWhiteSpace(project))
+            var access = await BuildUserAccessContextAsync();
+            if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(project) || string.IsNullOrWhiteSpace(description))
             {
-                await _urlService.AddUrlAsync(url, description, environment, project);
+                SetStatusMessage("Please provide all required fields for the new URL.", "warning");
+                return RedirectToAction("Index");
+            }
+
+            var trimmedUrl = url.Trim();
+            var trimmedDescription = description.Trim();
+            var trimmedProject = project.Trim();
+            var allowedProjects = access.AllowedProjects?.ToList();
+
+            try
+            {
+                await _urlService.AddUrlAsync(
+                    trimmedUrl,
+                    trimmedDescription,
+                    environment,
+                    trimmedProject,
+                    isPublic,
+                    access.UserId,
+                    allowedProjects,
+                    access.IsAdmin);
+
+                SetStatusMessage("URL added successfully.", "success");
+            }
+            catch (UnauthorizedAccessException)
+            {
+                SetStatusMessage("You are not allowed to add URLs for that project.", "danger");
+            }
+            catch (InvalidOperationException ex)
+            {
+                SetStatusMessage(ex.Message, "danger");
             }
 
             return RedirectToAction("Index");
@@ -66,12 +104,28 @@ namespace URLBox.Presentation.Controllers
             return RedirectToAction("Index");
         }
 
-        [Authorize(Roles = "Administrator")]
+        [Authorize]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteUrl(int id)
         {
-            await _urlService.DeleteUrlAsync(id);
+            var access = await BuildUserAccessContextAsync();
+            var allowedProjects = access.AllowedProjects?.ToList();
+
+            try
+            {
+                await _urlService.DeleteUrlAsync(id, allowedProjects, access.UserId, access.IsAdmin);
+                SetStatusMessage("URL deleted successfully.", "success");
+            }
+            catch (UnauthorizedAccessException)
+            {
+                SetStatusMessage("You are not allowed to delete this URL.", "danger");
+            }
+            catch (InvalidOperationException ex)
+            {
+                SetStatusMessage(ex.Message, "warning");
+            }
+
             return RedirectToAction("Index");
         }
 
@@ -84,40 +138,85 @@ namespace URLBox.Presentation.Controllers
 
         private async Task<IActionResult> RenderIndexAsync(bool isPublicPage)
         {
+            var access = await BuildUserAccessContextAsync();
+            var includeOnlyPublic = isPublicPage || !access.IsAuthenticated;
             var projects = (await _projectService.GetProjectsAsync()).ToList();
-            IEnumerable<string>? allowedProjects = Array.Empty<string>();
+            var allowedProjects = access.AllowedProjects?.ToList();
 
-            if (User.Identity?.IsAuthenticated == true)
-            {
-                var user = await _userManager.GetUserAsync(User);
-                if (user is not null)
-                {
-                    var roles = await _userManager.GetRolesAsync(user);
-                    if (roles.Contains("Administrator", StringComparer.OrdinalIgnoreCase))
-                    {
-                        allowedProjects = null;
-                    }
-                    else
-                    {
-                        allowedProjects = roles;
-                    }
-                }
-            }
-
-            var urls = (await _urlService.GetUrlsAsync(allowedProjects)).ToList();
-
-            if (allowedProjects is not null)
+            if (allowedProjects is not null && !includeOnlyPublic)
             {
                 var allowedSet = new HashSet<string>(allowedProjects, StringComparer.OrdinalIgnoreCase);
                 projects = projects.Where(p => allowedSet.Contains(p.Name)).ToList();
             }
 
+            var urls = (await _urlService.GetUrlsAsync(allowedProjects, access.UserId, includeOnlyPublic, access.IsAdmin)).ToList();
+
+            if (includeOnlyPublic)
+            {
+                var visibleProjects = urls
+                    .Select(u => u.Tag)
+                    .Where(name => !string.IsNullOrWhiteSpace(name))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+                projects = projects
+                    .Where(p => visibleProjects.Contains(p.Name))
+                    .OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+            }
+
             ViewBag.Projects = projects;
-            ViewBag.LoginError = TempData["LoginError"];
+            ViewBag.ManageableProjects = isPublicPage ? Enumerable.Empty<ProjectViewModel>() : projects;
+            ViewBag.CanManageUrls = !isPublicPage && access.IsAuthenticated && (access.IsAdmin || projects.Any());
+
+            var statusMessage = TempData[StatusMessageKey] as string;
+            if (!string.IsNullOrEmpty(statusMessage))
+            {
+                ViewBag.StatusMessage = statusMessage;
+                ViewBag.StatusMessageType = TempData[StatusMessageTypeKey] as string ?? "info";
+            }
+
+            ViewBag.LoginError = TempData[LoginErrorKey];
+            ViewBag.ShowLoginModal = TempData[ShowLoginModalKey];
+            var loginReturnUrl = TempData[LoginReturnUrlKey] as string;
+            if (!string.IsNullOrEmpty(loginReturnUrl))
+            {
+                ViewBag.LoginReturnUrl = loginReturnUrl;
+            }
+
             ViewBag.IsPublicPage = isPublicPage;
             ViewData["Title"] = isPublicPage ? "Public URLs" : "URL dashboard";
 
             return View("Index", urls);
+        }
+
+        private async Task<UserAccessContext> BuildUserAccessContextAsync()
+        {
+            if (User.Identity?.IsAuthenticated == true)
+            {
+                var user = await _userManager.GetUserAsync(User);
+                if (user is not null)
+                {
+                    var roles = (await _userManager.GetRolesAsync(user)).ToList();
+                    var isAdmin = roles.Contains("Administrator", StringComparer.OrdinalIgnoreCase);
+                    return new UserAccessContext(true, isAdmin, user.Id, roles);
+                }
+            }
+
+            return UserAccessContext.Anonymous;
+        }
+
+        private void SetStatusMessage(string message, string type)
+        {
+            TempData[StatusMessageKey] = message;
+            TempData[StatusMessageTypeKey] = type;
+        }
+
+        private sealed record UserAccessContext(bool IsAuthenticated, bool IsAdmin, string? UserId, IReadOnlyCollection<string> Roles)
+        {
+            public IEnumerable<string>? AllowedProjects => IsAdmin ? null : Roles;
+
+            public static UserAccessContext Anonymous { get; } = new(false, false, null, Array.Empty<string>());
         }
     }
 }

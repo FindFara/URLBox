@@ -1,7 +1,33 @@
+@using System.Linq
+@using System.Text.Json
 @model URLBox.Presentation.Models.AdminDashboardViewModel
 @{
     ViewData["Title"] = "Admin dashboard";
     Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var totalUsers = Model.TotalUsers;
+    var totalRoles = Model.TotalRoles;
+    var totalUrls = Model.UrlStatistics.TotalUrls;
+    var publicUrls = Model.UrlStatistics.PublicUrls;
+
+    var roleLabelList = Model.Roles
+        .Select(r => r.RoleName)
+        .Concat(Model.UrlStatistics.UrlsPerRole.Select(r => r.RoleName))
+        .Where(name => !string.IsNullOrWhiteSpace(name))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+        .ToList();
+
+    var userCountsByRole = Model.Roles.ToDictionary(r => r.RoleName, r => r.AssignedUserCount, StringComparer.OrdinalIgnoreCase);
+    var urlCountsByRole = Model.UrlStatistics.UrlsPerRole.ToDictionary(r => r.RoleName, r => r.UrlCount, StringComparer.OrdinalIgnoreCase);
+
+    var userCountsSeries = roleLabelList.Select(label => userCountsByRole.TryGetValue(label, out var count) ? count : 0).ToList();
+    var urlCountsSeries = roleLabelList.Select(label => urlCountsByRole.TryGetValue(label, out var count) ? count : 0).ToList();
+
+    var roleLabelsJson = JsonSerializer.Serialize(roleLabelList);
+    var userCountsJson = JsonSerializer.Serialize(userCountsSeries);
+    var urlCountsJson = JsonSerializer.Serialize(urlCountsSeries);
+    var hasRoleChartData = roleLabelList.Any();
 }
 
 <section class="py-4">
@@ -30,6 +56,71 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     }
+
+    <div class="row g-3 g-md-4 mb-4">
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex flex-column gap-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-uppercase text-muted small">Users</span>
+                        <i class="bi bi-people text-primary fs-5"></i>
+                    </div>
+                    <span class="fs-3 fw-semibold">@totalUsers</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex flex-column gap-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-uppercase text-muted small">Roles</span>
+                        <i class="bi bi-diagram-3 text-warning fs-5"></i>
+                    </div>
+                    <span class="fs-3 fw-semibold">@totalRoles</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex flex-column gap-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-uppercase text-muted small">URLs</span>
+                        <i class="bi bi-link-45deg text-success fs-5"></i>
+                    </div>
+                    <span class="fs-3 fw-semibold">@totalUrls</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex flex-column gap-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-uppercase text-muted small">Public URLs</span>
+                        <i class="bi bi-broadcast-pin text-danger fs-5"></i>
+                    </div>
+                    <span class="fs-3 fw-semibold">@publicUrls</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-transparent py-3">
+                    <h2 class="h5 mb-0">Role coverage</h2>
+                </div>
+                <div class="card-body">
+                    <div class="position-relative" style="min-height: 280px;">
+                        <canvas id="roleOverviewChart" class="@(hasRoleChartData ? string.Empty : "d-none")"></canvas>
+                        <div class="chart-empty-state @(hasRoleChartData ? "d-none" : string.Empty) position-absolute top-50 start-50 translate-middle text-center">
+                            <p class="text-muted small mb-0">Add users to roles or assign URLs to populate this chart.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div class="row g-4">
         <div class="col-12 col-xl-7">
@@ -358,6 +449,66 @@
 </div>
 
 @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+    <script>
+        (() => {
+            const canvas = document.getElementById('roleOverviewChart');
+            if (!canvas) {
+                return;
+            }
+
+            const labels = @Html.Raw(roleLabelsJson);
+            if (!labels.length) {
+                return;
+            }
+
+            const userDataset = @Html.Raw(userCountsJson);
+            const urlDataset = @Html.Raw(urlCountsJson);
+
+            new Chart(canvas, {
+                type: 'bar',
+                data: {
+                    labels,
+                    datasets: [
+                        {
+                            label: 'Users',
+                            data: userDataset,
+                            backgroundColor: 'rgba(13, 110, 253, 0.55)',
+                            borderColor: 'rgba(13, 110, 253, 1)',
+                            borderWidth: 1,
+                            borderRadius: 8
+                        },
+                        {
+                            label: 'URLs',
+                            data: urlDataset,
+                            backgroundColor: 'rgba(25, 135, 84, 0.55)',
+                            borderColor: 'rgba(25, 135, 84, 1)',
+                            borderWidth: 1,
+                            borderRadius: 8
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0,
+                                stepSize: 1
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        })();
+    </script>
     <script>
         const assignRoleModal = document.getElementById('assignRoleModal');
         if (assignRoleModal) {

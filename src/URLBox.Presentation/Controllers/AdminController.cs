@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using URLBox.Application.Services;
 using URLBox.Domain.Entities;
 using URLBox.Presentation.Models;
 
@@ -17,15 +18,18 @@ namespace URLBox.Presentation.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<ApplicationRole> _roleManager;
         private readonly ILogger<AdminController> _logger;
+        private readonly UrlService _urlService;
 
         public AdminController(
             UserManager<ApplicationUser> userManager,
             RoleManager<ApplicationRole> roleManager,
-            ILogger<AdminController> logger)
+            ILogger<AdminController> logger,
+            UrlService urlService)
         {
             _userManager = userManager;
             _roleManager = roleManager;
             _logger = logger;
+            _urlService = urlService;
         }
 
         [HttpGet]
@@ -79,6 +83,11 @@ namespace URLBox.Presentation.Controllers
                     AssignedUserCount = count
                 });
             }
+
+            var urlStats = await _urlService.GetStatisticsAsync();
+            model.TotalUsers = model.Users.Count;
+            model.TotalRoles = model.Roles.Count;
+            model.UrlStatistics = urlStats;
 
             return View(model);
         }

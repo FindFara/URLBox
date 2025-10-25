@@ -17,6 +17,10 @@ namespace URLBox.Domain.Entities
         [Required]
         public EnvironmentType Environment { get; set; }
 
+        public bool IsPublic { get; set; }
+
+        public string? CreatedByUserId { get; set; }
+
         public int ProjectId { get; set; }
 
         public Project? Project { get; set; }
