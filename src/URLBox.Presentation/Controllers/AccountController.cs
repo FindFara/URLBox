@@ -1,4 +1,4 @@
-using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -14,111 +14,111 @@ namespace URLBox.Presentation.Controllers
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly ILogger<AccountController> _logger;
 
-        public AccountController(UserManager<ApplicationUser> userManager,
-                                 SignInManager<ApplicationUser> signInManager,
-                                 ILogger<AccountController> logger)
+        public AccountController(
+            UserManager<ApplicationUser> userManager,
+            SignInManager<ApplicationUser> signInManager,
+            ILogger<AccountController> logger)
         {
             _userManager = userManager;
             _signInManager = signInManager;
-            _teamService = teamService;
             _logger = logger;
         }
 
         [HttpGet]
-        public async Task<IActionResult> Register()
+        public IActionResult Login(string? returnUrl = null)
         {
-            await PopulateTeamsAsync();
-            return View(new RegisterViewModel());
+            if (User.Identity?.IsAuthenticated == true)
+            {
+                return RedirectToAction("Index", "Home");
+            }
+
+            return View(new LoginViewModel
+            {
+                ReturnUrl = string.IsNullOrEmpty(returnUrl) ? Url.Action("Index", "Home") : returnUrl
+            });
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Register(RegisterViewModel model)
+        public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl = null, bool useModal = false)
         {
+            returnUrl ??= model.ReturnUrl ?? Url.Action("Index", "Home");
+
             if (!ModelState.IsValid)
             {
-                var user = new ApplicationUser { UserName = model.UserName };
-                var result = await _userManager.CreateAsync(user, model.Password);
-                if (result.Succeeded)
+                if (useModal)
                 {
-                    await _userManager.AddToRoleAsync(user , "Member");
-                    _logger.LogInformation("User created a new account with password.");
-                    await _signInManager.SignInAsync(user, isPersistent: false);
+                    TempData["LoginError"] = "Please provide both a username and password.";
+                    return RedirectToAction("Index", "Home");
+                }
+
+                model.ReturnUrl = returnUrl;
+                return View(model);
+            }
+
+            var user = await _userManager.FindByNameAsync(model.UserName);
+            if (user is null)
+            {
+                _logger.LogWarning("Login attempt failed for unknown user '{UserName}'", model.UserName);
+                return HandleFailedLogin(model, returnUrl, useModal);
+            }
+
+            var result = await _signInManager.PasswordSignInAsync(user, model.Password, model.RememberMe, lockoutOnFailure: false);
+            if (result.Succeeded)
+            {
+                _logger.LogInformation("User '{UserName}' logged in successfully.", model.UserName);
+                if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+                {
+                    return Redirect(returnUrl);
+                }
 
                 return RedirectToAction("Index", "Home");
             }
 
-            foreach (var error in result.Errors)
+            if (result.IsLockedOut)
             {
-                ModelState.AddModelError(string.Empty, error.Description);
-            }
-
-            await PopulateTeamsAsync();
-            return View(model);
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> Login()
-        {
-            await PopulateTeamsAsync();
-            return View(new LoginViewModel());
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Login(LoginViewModel model)
-        {
-            if (!ModelState.IsValid)
-            {
-                await PopulateTeamsAsync();
-                return View(model);
-            }
-
-            var user = await _userManager.FindByEmailAsync(model.Email);
-            if (user is null)
-            {
-                ModelState.AddModelError(string.Empty, "Invalid login attempt.");
-                await PopulateTeamsAsync();
-                return View(model);
-            }
-
-            if (!await _userManager.IsInRoleAsync(user, model.Team))
-            {
-                var result = await _signInManager.PasswordSignInAsync(model.UserName, model.Password, model.RememberMe, lockoutOnFailure: false);
-                if (result.Succeeded)
+                _logger.LogWarning("User '{UserName}' account locked out.", model.UserName);
+                if (useModal)
                 {
-                    _logger.LogInformation("User logged in.");
+                    TempData["LoginError"] = "Your account is locked. Please contact the administrator.";
                     return RedirectToAction("Index", "Home");
                 }
-                if (result.IsLockedOut)
-                {
-                    ModelState.AddModelError(string.Empty, "User account locked out.");
-                    return View("~/Views/Home/Index.cshtml", indexModel);
-                }
-                ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+
+                ModelState.AddModelError(string.Empty, "Your account is locked. Please contact the administrator.");
+                model.ReturnUrl = returnUrl;
+                return View(model);
             }
-            return View("~/Views/Home/Index.cshtml", indexModel);
+
+            _logger.LogWarning("Invalid password for user '{UserName}'.", model.UserName);
+            return HandleFailedLogin(model, returnUrl, useModal);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Logout()
         {
-            await _signInManager.SignOutAsync();
-            _logger.LogInformation("User logged out.");
+            if (User.Identity?.IsAuthenticated == true)
+            {
+                await _signInManager.SignOutAsync();
+                _logger.LogInformation("User logged out.");
+            }
+
             return RedirectToAction("Index", "Home");
         }
 
-        private async Task PopulateTeamsAsync()
+        private IActionResult HandleFailedLogin(LoginViewModel model, string? returnUrl, bool useModal)
         {
-            var teams = await _teamService.GetTeamsOnly();
-            ViewBag.TeamList = teams
-                .Select(team => new SelectListItem
-                {
-                    Value = team.Name,
-                    Text = team.Name
-                })
-                .ToList();
+            const string errorMessage = "Invalid username or password.";
+
+            if (useModal)
+            {
+                TempData["LoginError"] = errorMessage;
+                return RedirectToAction("Index", "Home");
+            }
+
+            ModelState.AddModelError(string.Empty, errorMessage);
+            model.ReturnUrl = returnUrl;
+            return View("Login", model);
         }
     }
 }

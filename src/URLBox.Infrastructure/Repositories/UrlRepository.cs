@@ -1,10 +1,12 @@
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using URLBox.Domain.Entities;
 using URLBox.Domain.Interfaces;
 using URLBox.Infrastructure.Persistance;
-using URLBox.Domain.Entities;
-using URLBox.Domain.Enums;
 
 namespace URLBox.Infrastructure.Repositories;
+
 public class UrlRepository : IUrlRepository
 {
     private readonly ApplicationDbContext _context;
@@ -17,14 +19,8 @@ public class UrlRepository : IUrlRepository
     public async Task<IEnumerable<Url>> GetAllAsync()
     {
         return await _context.Urls
+            .Include(u => u.Project)
             .AsNoTracking()
-            .Select(u => new Url
-            {
-                Id = u.Id,
-                UrlValue = u.UrlValue,
-                Description = u.Description,
-                Environment = (Domain.Enums.EnvironmentType)u.Environment
-            })
             .ToListAsync();
     }
 

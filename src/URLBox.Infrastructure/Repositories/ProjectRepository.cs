@@ -1,6 +1,7 @@
-
-using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using URLBox.Domain.Entities;
 using URLBox.Domain.Interfaces;
 using URLBox.Infrastructure.Persistance;
@@ -38,9 +39,10 @@ public class ProjectRepository : IProjectRepository
         await _context.SaveChangesAsync();
     }
 
-    public async Task<Project> GetProject(string projectName)
+    public async Task<Project?> GetProject(string projectName)
     {
         return await _context.Projects
-                             .FirstOrDefaultAsync(p => p.Name == projectName);
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Name == projectName);
     }
 }
