@@ -274,6 +274,12 @@ namespace URLBox.Infrastructure.Migrations
                     b.Property<int>("Environment")
                         .HasColumnType("int");
 
+                    b.Property<string>("CreatedByUserId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsPublic")
+                        .HasColumnType("bit");
+
                     b.Property<int>("ProjectId")
                         .HasColumnType("int");
 

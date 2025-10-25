@@ -4,11 +4,18 @@
 @using URLBox.Application.ViewModel
 @{
     Layout = null;
-    var projects = ViewBag.Projects as IEnumerable<ProjectViewModel> ?? Enumerable.Empty<ProjectViewModel>();
+    var projects = (ViewBag.Projects as IEnumerable<ProjectViewModel> ?? Enumerable.Empty<ProjectViewModel>()).ToList();
+    var manageableProjects = (ViewBag.ManageableProjects as IEnumerable<ProjectViewModel> ?? Enumerable.Empty<ProjectViewModel>()).ToList();
     var loginError = ViewBag.LoginError as string;
+    var statusMessage = ViewBag.StatusMessage as string;
+    var statusMessageTone = ((ViewBag.StatusMessageType as string) ?? "info").ToString().ToLowerInvariant();
+    var loginReturnUrl = ViewBag.LoginReturnUrl as string ?? Url.Action("Index", "Home");
+    var showLoginModal = (ViewBag.ShowLoginModal as bool?) ?? false;
+    var shouldShowLoginModal = showLoginModal || !string.IsNullOrEmpty(loginError);
     var isAuthenticated = User.Identity?.IsAuthenticated ?? false;
     var isAdmin = User.IsInRole("Administrator");
     var isPublicPage = (ViewBag.IsPublicPage as bool?) ?? false;
+    var canManageUrls = (ViewBag.CanManageUrls as bool?) ?? false;
 }
 
 <!doctype html>
@@ -59,7 +66,7 @@
             </button>
         }
 
-        @if (isAdmin)
+        @if (canManageUrls)
         {
             <button type="button" class="btn btn-primary btn-icon" data-bs-toggle="modal" data-bs-target="#addUrlModal" data-bs-placement="right" title="Add URL">
                 <i class="bi bi-plus-lg"></i>
@@ -99,7 +106,7 @@
                     </button>
                 </form>
 
-                @if (isAdmin)
+                @if (canManageUrls)
                 {
                     <button type="button" class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#addUrlModal" data-bs-dismiss="offcanvas">
                         <i class="bi bi-plus-lg me-1"></i> Add URL
@@ -147,7 +154,7 @@
         <button type="button" class="btn btn-secondary btn-sm" onclick="applyProjectFilter('all')">Show all</button>
     </div>
 
-    @if (isAdmin)
+    @if (canManageUrls)
     {
         <div class="modal fade" id="addUrlModal" tabindex="-1" aria-labelledby="addUrlModalLabel" aria-hidden="true">
             <div class="modal-dialog">
@@ -157,36 +164,50 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <form method="post" asp-action="AddUrl">
-                            @Html.AntiForgeryToken()
-                            <div class="form-group mb-3">
-                                <label for="url">URL</label>
-                                <input type="url" class="form-control" id="url" name="url" placeholder="https://example.com" required />
+                        @if (manageableProjects.Any())
+                        {
+                            <form method="post" asp-action="AddUrl">
+                                @Html.AntiForgeryToken()
+                                <div class="form-group mb-3">
+                                    <label for="url">URL</label>
+                                    <input type="url" class="form-control" id="url" name="url" placeholder="https://example.com" required />
+                                </div>
+                                <div class="form-group mb-3">
+                                    <label for="description">Description</label>
+                                    <input type="text" class="form-control" id="description" name="description" placeholder="Enter description" required />
+                                </div>
+                                <div class="form-group mb-3">
+                                    <label for="project">Project</label>
+                                    <select class="form-select" id="project" name="project" required>
+                                        @foreach (var project in manageableProjects)
+                                        {
+                                            <option value="@project.Name">@project.Name</option>
+                                        }
+                                    </select>
+                                </div>
+                                <div class="form-group mb-3">
+                                    <label for="environment">Environment</label>
+                                    <select class="form-select" id="environment" name="environment">
+                                        @foreach (EnvironmentType envType in Enum.GetValues(typeof(EnvironmentType)))
+                                        {
+                                            <option value="@envType">@envType</option>
+                                        }
+                                    </select>
+                                </div>
+                                <div class="form-check form-switch mb-4">
+                                    <input type="hidden" name="isPublic" value="false" />
+                                    <input class="form-check-input" type="checkbox" id="isPublic" name="isPublic" value="true" />
+                                    <label class="form-check-label" for="isPublic">Make this URL visible to everyone</label>
+                                </div>
+                                <button type="submit" class="btn btn-primary w-100">Add URL</button>
+                            </form>
+                        }
+                        else
+                        {
+                            <div class="alert alert-info mb-0" role="alert">
+                                No projects are available for you to manage yet.
                             </div>
-                            <div class="form-group mb-3">
-                                <label for="description">Description</label>
-                                <input type="text" class="form-control" id="description" name="description" placeholder="Enter description" required />
-                            </div>
-                            <div class="form-group mb-3">
-                                <label for="project">Project</label>
-                                <select class="form-select" id="project" name="project" required>
-                                    @foreach (var project in projects)
-                                    {
-                                        <option value="@project.Name">@project.Name</option>
-                                    }
-                                </select>
-                            </div>
-                            <div class="form-group mb-3">
-                                <label for="environment">Environment</label>
-                                <select class="form-select" id="environment" name="environment">
-                                    @foreach (EnvironmentType envType in Enum.GetValues(typeof(EnvironmentType)))
-                                    {
-                                        <option value="@envType">@envType</option>
-                                    }
-                                </select>
-                            </div>
-                            <button type="submit" class="btn btn-primary w-100">Add URL</button>
-                        </form>
+                        }
                     </div>
                 </div>
             </div>
@@ -231,8 +252,7 @@
                     }
                     <form asp-controller="Account" asp-action="Login" method="post">
                         @Html.AntiForgeryToken()
-                        <input type="hidden" name="ReturnUrl" value="@Url.Action("Index", "Home")" />
-                        <input type="hidden" name="useModal" value="true" />
+                        <input type="hidden" name="ReturnUrl" value="@loginReturnUrl" />
                         <div class="mb-3">
                             <label for="loginUserName" class="form-label">Username</label>
                             <input type="text" class="form-control" id="loginUserName" name="UserName" required autocomplete="username" />
@@ -244,9 +264,6 @@
                         <div class="form-check mb-3">
                             <input class="form-check-input" type="checkbox" id="loginRememberMe" name="RememberMe" />
                             <label class="form-check-label" for="loginRememberMe">Remember me</label>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <a asp-controller="Account" asp-action="Login" class="small">Open full login page</a>
                         </div>
                         <button type="submit" class="btn btn-primary w-100">Login</button>
                     </form>
@@ -261,6 +278,13 @@
             <div class="alert alert-warning d-flex align-items-center gap-2" role="alert">
                 <i class="bi bi-globe"></i>
                 <span>This read-only view is available to everyone. Sign in to manage URLs and projects.</span>
+            </div>
+        }
+        @if (!string.IsNullOrEmpty(statusMessage))
+        {
+            <div class="alert alert-@statusMessageTone alert-dismissible fade show" role="alert">
+                @statusMessage
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         }
         <div class="row mt-4">
@@ -278,10 +302,15 @@
                         @foreach (var url in urlsForEnvironment)
                         {
                             var projectName = string.IsNullOrWhiteSpace(url.Tag) ? "Unknown" : url.Tag;
+                            var canManageEntry = canManageUrls && url.CanManage;
                             <div class="card p-2 mb-3 shadow-sm" data-project="@projectName">
                                 <h6 class="mb-1" style="color:var(--text-muted-strong);">
                                     @url.Description
                                     <span class="badge tag-badge">@projectName</span>
+                                    @if (url.IsPublic)
+                                    {
+                                        <span class="badge text-bg-success ms-2">Public</span>
+                                    }
                                 </h6>
                                 <div class="input-group input-group-sm mb-2">
                                     <input type="text" class="form-control" value="@url.UrlValue" readonly />
@@ -289,7 +318,7 @@
                                 </div>
                                 <div class="btn-group btn-group-sm w-100" role="group">
                                     <a href="@url.UrlValue" target="_blank" class="btn btn-outline-secondary">Open</a>
-                                    @if (isAdmin)
+                                    @if (canManageEntry)
                                     {
                                         <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteConfirmationModal" onclick="setDeleteId(@url.Id)">
                                             Delete
@@ -433,7 +462,7 @@
             })();
         })();
     </script>
-    @if (!string.IsNullOrEmpty(loginError))
+    @if (shouldShowLoginModal)
     {
         <script>
             const loginModalEl = document.getElementById('loginModal');
