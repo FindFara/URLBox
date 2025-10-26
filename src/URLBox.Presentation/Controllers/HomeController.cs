@@ -49,7 +49,9 @@ namespace URLBox.Presentation.Controllers
         public async Task<IActionResult> AddUrl(string url, string description, EnvironmentType environment, List<string> projects)
         {
             var access = await BuildUserAccessContextAsync();
-            if (!access.IsAdmin && !access.IsManager)
+            var canManageAllUrls = access.IsAdmin || access.IsManager;
+
+            if (!canManageAllUrls)
             {
                 SetStatusMessage("You do not have permission to add URLs.", "danger");
                 return RedirectToAction("Index");
@@ -73,7 +75,7 @@ namespace URLBox.Presentation.Controllers
                 .ToList();
 
             IEnumerable<string>? allowedProjects = null;
-            if (!access.IsAdmin)
+            if (!canManageAllUrls)
             {
                 allowedProjects = (await _projectService.GetProjectsForRolesAsync(access.NonSystemRoles))
                     .Select(p => p.Name)
@@ -89,7 +91,7 @@ namespace URLBox.Presentation.Controllers
                     selectedProjects,
                     access.UserId,
                     allowedProjects,
-                    access.IsAdmin);
+                    canManageAllUrls);
 
                 SetStatusMessage("URL added successfully.", "success");
             }
@@ -111,14 +113,15 @@ namespace URLBox.Presentation.Controllers
         public async Task<IActionResult> DeleteUrl(int id)
         {
             var access = await BuildUserAccessContextAsync();
-            if (!access.IsAdmin && !access.IsManager)
+            var canManageAllUrls = access.IsAdmin || access.IsManager;
+            if (!canManageAllUrls)
             {
                 SetStatusMessage("You do not have permission to delete URLs.", "danger");
                 return RedirectToAction("Index");
             }
 
             IEnumerable<string>? allowedProjects = null;
-            if (!access.IsAdmin)
+            if (!canManageAllUrls)
             {
                 allowedProjects = (await _projectService.GetProjectsForRolesAsync(access.NonSystemRoles))
                     .Select(p => p.Name)
@@ -127,7 +130,7 @@ namespace URLBox.Presentation.Controllers
 
             try
             {
-                await _urlService.DeleteUrlAsync(id, allowedProjects, access.UserId, access.IsAdmin);
+                await _urlService.DeleteUrlAsync(id, allowedProjects, access.UserId, canManageAllUrls);
                 SetStatusMessage("URL deleted successfully.", "success");
             }
             catch (UnauthorizedAccessException)
@@ -153,15 +156,16 @@ namespace URLBox.Presentation.Controllers
         {
             var access = await BuildUserAccessContextAsync();
             var allProjects = (await _projectService.GetProjectsAsync()).ToList();
-            var accessibleProjects = access.IsAdmin
+            var canManageAllUrls = access.IsAdmin || access.IsManager;
+            var accessibleProjects = canManageAllUrls
                 ? allProjects
                 : (await _projectService.GetProjectsForRolesAsync(access.NonSystemRoles)).ToList();
 
-            IEnumerable<string>? allowedProjects = access.IsAdmin
+            IEnumerable<string>? allowedProjects = canManageAllUrls
                 ? null
                 : accessibleProjects.Select(p => p.Name).ToList();
 
-            var urls = (await _urlService.GetUrlsAsync(allowedProjects, access.UserId, access.IsAdmin)).ToList();
+            var urls = (await _urlService.GetUrlsAsync(allowedProjects, access.UserId, includeOnlyPublic, canManageAllUrls)).ToList();
 
             List<ProjectViewModel> projects;
             if (access.IsAdmin)
@@ -174,7 +178,7 @@ namespace URLBox.Presentation.Controllers
             }
 
             var manageableProjects = access.IsAuthenticated
-                ? (access.IsAdmin ? allProjects : accessibleProjects)
+                ? (canManageAllUrls ? allProjects : accessibleProjects)
                 : Enumerable.Empty<ProjectViewModel>();
 
             ViewBag.Projects = projects;
@@ -182,7 +186,7 @@ namespace URLBox.Presentation.Controllers
             ViewBag.assignableProjects = accessibleProjects.ToList();
             var hasManageableProjects = manageableProjects.Any();
             ViewBag.CanManageUrls = access.IsAuthenticated
-                && (access.IsAdmin || (access.IsManager && hasManageableProjects));
+                && (canManageAllUrls || hasManageableProjects);
 
             var statusMessage = TempData[StatusMessageKey] as string;
             if (!string.IsNullOrEmpty(statusMessage))
