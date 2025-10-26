@@ -12,5 +12,7 @@ namespace URLBox.Application.ViewModel
         public int Id { get; set; }
 
         public string Name { get; set; } = string.Empty;
+
+        public List<string> RoleNames { get; set; } = new();
     }
 }

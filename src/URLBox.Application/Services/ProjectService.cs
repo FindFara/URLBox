@@ -23,6 +23,12 @@ namespace URLBox.Application.Services
                 {
                     Id = x.Id,
                     Name = x.Name,
+                    RoleNames = x.Roles
+                        .Select(role => role.Name ?? string.Empty)
+                        .Where(name => !string.IsNullOrWhiteSpace(name))
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+                        .ToList()
                 })
                 .OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase)
                 .ToList();
@@ -36,6 +42,12 @@ namespace URLBox.Application.Services
                 {
                     Id = x.Id,
                     Name = x.Name,
+                    RoleNames = x.Roles
+                        .Select(role => role.Name ?? string.Empty)
+                        .Where(name => !string.IsNullOrWhiteSpace(name))
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+                        .ToList()
                 })
                 .OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase)
                 .ToList();

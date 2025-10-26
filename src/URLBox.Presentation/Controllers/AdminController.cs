@@ -47,13 +47,15 @@ namespace URLBox.Presentation.Controllers
                 .OrderBy(r => r.Name)
                 .ToListAsync();
 
+            var projects = (await _projectService.GetProjectsAsync())
+                .OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
             var model = new AdminDashboardViewModel
             {
                 Users = new List<UserRoleViewModel>(),
                 StatusMessage = statusMessage
             };
-
-            var roleUsage = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
             foreach (var user in users)
             {
@@ -65,33 +67,45 @@ namespace URLBox.Presentation.Controllers
                     Email = user.Email ?? string.Empty,
                     Roles = roles.OrderBy(r => r).ToList()
                 });
-
-                foreach (var role in roles)
-                {
-                    if (!roleUsage.TryAdd(role, 1))
-                    {
-                        roleUsage[role]++;
-                    }
-                }
             }
+
+            var roleProjectLookup = projects
+                .SelectMany(project => project.RoleNames
+                    .Where(roleName => !string.IsNullOrWhiteSpace(roleName))
+                    .Select(roleName => new { RoleName = roleName, ProjectName = project.Name }))
+                .GroupBy(item => item.RoleName, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group
+                        .Select(item => item.ProjectName)
+                        .Where(name => !string.IsNullOrWhiteSpace(name))
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+                        .ToList(),
+                    StringComparer.OrdinalIgnoreCase);
 
             foreach (var role in roleEntities)
             {
                 var roleName = role.Name ?? string.Empty;
-                roleUsage.TryGetValue(roleName, out var count);
+                var assignedUsers = model.Users
+                    .Where(user => user.Roles.Any(r => string.Equals(r, roleName, StringComparison.OrdinalIgnoreCase)))
+                    .Select(user => user.UserName)
+                    .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                roleProjectLookup.TryGetValue(roleName, out var projectsForRole);
 
                 model.Roles.Add(new RoleSummaryViewModel
                 {
                     RoleId = role.Id,
                     RoleName = roleName,
-                    AssignedUserCount = count
+                    AssignedUserCount = assignedUsers.Count,
+                    AssignedUsers = assignedUsers,
+                    AssignedProjects = projectsForRole?.ToList() ?? new List<string>()
                 });
             }
 
             var urlStats = await _urlService.GetStatisticsAsync();
-            var projects = (await _projectService.GetProjectsAsync())
-                .OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase)
-                .ToList();
             model.TotalUsers = model.Users.Count;
             model.TotalRoles = model.Roles.Count;
             model.UrlStatistics = urlStats;

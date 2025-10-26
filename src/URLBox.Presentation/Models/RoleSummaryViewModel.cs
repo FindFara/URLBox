@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace URLBox.Presentation.Models
@@ -9,6 +10,10 @@ namespace URLBox.Presentation.Models
         public string RoleName { get; set; } = string.Empty;
 
         public int AssignedUserCount { get; set; }
+
+        public List<string> AssignedUsers { get; set; } = new();
+
+        public List<string> AssignedProjects { get; set; } = new();
     }
 
     public class CreateUserInputModel

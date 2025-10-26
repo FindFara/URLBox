@@ -26,7 +26,14 @@ public class ProjectRepository : IProjectRepository
             .Select(p => new Project
             {
                 Id = p.Id,
-                Name = p.Name
+                Name = p.Name,
+                Roles = p.Roles
+                    .Select(role => new ApplicationRole
+                    {
+                        Id = role.Id,
+                        Name = role.Name ?? string.Empty
+                    })
+                    .ToList()
             })
             .ToListAsync();
     }
@@ -50,7 +57,14 @@ public class ProjectRepository : IProjectRepository
             .Select(project => new Project
             {
                 Id = project.Id,
-                Name = project.Name
+                Name = project.Name,
+                Roles = project.Roles
+                    .Select(role => new ApplicationRole
+                    {
+                        Id = role.Id,
+                        Name = role.Name ?? string.Empty
+                    })
+                    .ToList()
             })
             .ToListAsync();
     }
