@@ -5,13 +5,21 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using URLBox.Domain.Authorization;
 using URLBox.Domain.Entities;
 
 namespace URLBox.Infrastructure.Seed
 {
     public static class IdentitySeeder
     {
-        private static readonly string[] DefaultRoles = new[] { "Administrator", "DirectDebit", "AsaPay" };
+        private static readonly string[] DefaultRoles = new[]
+        {
+            AppRoles.Administrator,
+            AppRoles.Manager,
+            AppRoles.Viewer,
+            "DirectDebit",
+            "AsaPay"
+        };
 
         public static async Task SeedAsync(IServiceProvider services, IConfiguration configuration)
         {
@@ -60,9 +68,9 @@ namespace URLBox.Infrastructure.Seed
                 logger.LogInformation("Created admin user {UserName}", adminUserName);
             }
 
-            if (!await userManager.IsInRoleAsync(adminUser, "Administrator"))
+            if (!await userManager.IsInRoleAsync(adminUser, AppRoles.Administrator))
             {
-                var addRoleResult = await userManager.AddToRoleAsync(adminUser, "Administrator");
+                var addRoleResult = await userManager.AddToRoleAsync(adminUser, AppRoles.Administrator);
                 if (!addRoleResult.Succeeded)
                 {
                     var errors = string.Join(" ", addRoleResult.Errors.Select(e => e.Description));

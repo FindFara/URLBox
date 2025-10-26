@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using URLBox.Application.Services;
 using URLBox.Application.ViewModel;
+using URLBox.Domain.Authorization;
 using URLBox.Domain.Entities;
 using URLBox.Domain.Enums;
 using URLBox.Domain.Models;
@@ -54,6 +55,12 @@ namespace URLBox.Presentation.Controllers
         public async Task<IActionResult> AddUrl(string url, string description, EnvironmentType environment, string project, bool isPublic = false)
         {
             var access = await BuildUserAccessContextAsync();
+            if (!access.IsAdmin && !access.IsManager)
+            {
+                SetStatusMessage("You do not have permission to add URLs.", "danger");
+                return RedirectToAction("Index");
+            }
+
             if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(project) || string.IsNullOrWhiteSpace(description))
             {
                 SetStatusMessage("Please provide all required fields for the new URL.", "warning");
@@ -110,6 +117,12 @@ namespace URLBox.Presentation.Controllers
         public async Task<IActionResult> DeleteUrl(int id)
         {
             var access = await BuildUserAccessContextAsync();
+            if (!access.IsAdmin && !access.IsManager)
+            {
+                SetStatusMessage("You do not have permission to delete URLs.", "danger");
+                return RedirectToAction("Index");
+            }
+
             var allowedProjects = access.AllowedProjects?.ToList();
 
             try
@@ -167,7 +180,10 @@ namespace URLBox.Presentation.Controllers
 
             ViewBag.Projects = projects;
             ViewBag.ManageableProjects = isPublicPage ? Enumerable.Empty<ProjectViewModel>() : projects;
-            ViewBag.CanManageUrls = !isPublicPage && access.IsAuthenticated && (access.IsAdmin || projects.Any());
+            var hasManageableProjects = allowedProjects is { Count: > 0 };
+            ViewBag.CanManageUrls = !isPublicPage
+                && access.IsAuthenticated
+                && (access.IsAdmin || (access.IsManager && hasManageableProjects));
 
             var statusMessage = TempData[StatusMessageKey] as string;
             if (!string.IsNullOrEmpty(statusMessage))
@@ -198,8 +214,9 @@ namespace URLBox.Presentation.Controllers
                 if (user is not null)
                 {
                     var roles = (await _userManager.GetRolesAsync(user)).ToList();
-                    var isAdmin = roles.Contains("Administrator", StringComparer.OrdinalIgnoreCase);
-                    return new UserAccessContext(true, isAdmin, user.Id, roles);
+                    var isAdmin = roles.Contains(AppRoles.Administrator, StringComparer.OrdinalIgnoreCase);
+                    var isManager = isAdmin || roles.Contains(AppRoles.Manager, StringComparer.OrdinalIgnoreCase);
+                    return new UserAccessContext(true, isAdmin, isManager, user.Id, roles);
                 }
             }
 
@@ -212,11 +229,13 @@ namespace URLBox.Presentation.Controllers
             TempData[StatusMessageTypeKey] = type;
         }
 
-        private sealed record UserAccessContext(bool IsAuthenticated, bool IsAdmin, string? UserId, IReadOnlyCollection<string> Roles)
+        private sealed record UserAccessContext(bool IsAuthenticated, bool IsAdmin, bool IsManager, string? UserId, IReadOnlyCollection<string> Roles)
         {
-            public IEnumerable<string>? AllowedProjects => IsAdmin ? null : Roles;
+            public IEnumerable<string>? AllowedProjects => IsAdmin
+                ? null
+                : Roles.Where(role => !AppRoles.IsSystemRole(role));
 
-            public static UserAccessContext Anonymous { get; } = new(false, false, null, Array.Empty<string>());
+            public static UserAccessContext Anonymous { get; } = new(false, false, false, null, Array.Empty<string>());
         }
     }
 }
