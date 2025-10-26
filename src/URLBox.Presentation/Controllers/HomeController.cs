@@ -37,16 +37,9 @@ namespace URLBox.Presentation.Controllers
             _userManager = userManager;
         }
 
-        [AllowAnonymous]
         public Task<IActionResult> Index()
         {
-            return RenderIndexAsync(isPublicPage: false);
-        }
-
-        [AllowAnonymous]
-        public Task<IActionResult> Public()
-        {
-            return RenderIndexAsync(isPublicPage: true);
+            return RenderIndexAsync();
         }
 
         [Authorize]
@@ -156,10 +149,10 @@ namespace URLBox.Presentation.Controllers
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
 
-        private async Task<IActionResult> RenderIndexAsync(bool isPublicPage)
+        private async Task<IActionResult> RenderIndexAsync()
         {
             var access = await BuildUserAccessContextAsync();
-            var includeOnlyPublic = isPublicPage || !access.IsAuthenticated;
+            var includeOnlyPublic = !access.IsAuthenticated;
             var allProjects = (await _projectService.GetProjectsAsync()).ToList();
             var accessibleProjects = access.IsAdmin
                 ? allProjects
@@ -172,20 +165,7 @@ namespace URLBox.Presentation.Controllers
             var urls = (await _urlService.GetUrlsAsync(allowedProjects, access.UserId, includeOnlyPublic, access.IsAdmin)).ToList();
 
             List<ProjectViewModel> projects;
-            if (includeOnlyPublic)
-            {
-                var visibleProjects = urls
-                    .SelectMany(u => u.ProjectTags)
-                    .Where(name => !string.IsNullOrWhiteSpace(name))
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-                projects = allProjects
-                    .Where(p => visibleProjects.Contains(p.Name))
-                    .OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase)
-                    .ToList();
-            }
-            else if (access.IsAdmin)
+            if (access.IsAdmin)
             {
                 projects = allProjects;
             }
@@ -194,16 +174,15 @@ namespace URLBox.Presentation.Controllers
                 projects = accessibleProjects.ToList();
             }
 
-            var assignableProjects = isPublicPage
-                ? Enumerable.Empty<ProjectViewModel>()
-                : (access.IsAdmin ? allProjects : accessibleProjects);
+            var manageableProjects = access.IsAuthenticated
+                ? (access.IsAdmin ? allProjects : accessibleProjects)
+                : Enumerable.Empty<ProjectViewModel>();
 
             ViewBag.Projects = projects;
-            ViewBag.AssignableProjects = assignableProjects;
-            var hasAssignableProjects = assignableProjects.Any();
-            ViewBag.CanManageUrls = !isPublicPage
-                && access.IsAuthenticated
-                && (access.IsAdmin || (access.IsManager && hasAssignableProjects));
+            ViewBag.ManageableProjects = manageableProjects;
+            var hasManageableProjects = manageableProjects.Any();
+            ViewBag.CanManageUrls = access.IsAuthenticated
+                && (access.IsAdmin || (access.IsManager && hasManageableProjects));
 
             var statusMessage = TempData[StatusMessageKey] as string;
             if (!string.IsNullOrEmpty(statusMessage))
@@ -220,8 +199,7 @@ namespace URLBox.Presentation.Controllers
                 ViewBag.LoginReturnUrl = loginReturnUrl;
             }
 
-            ViewBag.IsPublicPage = isPublicPage;
-            ViewData["Title"] = isPublicPage ? "Public URLs" : "URL dashboard";
+            ViewData["Title"] = "URL dashboard";
 
             return View("Index", urls);
         }

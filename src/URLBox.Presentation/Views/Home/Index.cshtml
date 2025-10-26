@@ -15,7 +15,6 @@
     var shouldShowLoginModal = showLoginModal || !string.IsNullOrEmpty(loginError);
     var isAuthenticated = User.Identity?.IsAuthenticated ?? false;
     var isAdmin = User.IsInRole("Administrator");
-    var isPublicPage = (ViewBag.IsPublicPage as bool?) ?? false;
     var canManageUrls = (ViewBag.CanManageUrls as bool?) ?? false;
 }
 
@@ -359,13 +358,6 @@
     </div>
 
     <div class="container-fluid mt-4">
-        @if (isPublicPage)
-        {
-            <div class="alert alert-warning d-flex align-items-center gap-2" role="alert">
-                <i class="bi bi-globe"></i>
-                <span>This read-only view is available to everyone. Sign in to manage URLs.</span>
-            </div>
-        }
         @if (!string.IsNullOrEmpty(statusMessage))
         {
             <div class="alert alert-@statusMessageTone alert-dismissible fade show" role="alert">
