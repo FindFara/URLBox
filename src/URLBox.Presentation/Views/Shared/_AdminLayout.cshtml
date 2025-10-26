@@ -1,0 +1,136 @@
+@using Microsoft.AspNetCore.Identity
+@using URLBox.Domain.Entities
+@inject SignInManager<ApplicationUser> SignInManager
+
+@{
+    var isAuthenticated = SignInManager.IsSignedIn(User);
+}
+
+<!doctype html>
+<html lang="en" data-bs-theme="light">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>@(ViewData["Title"] ?? "URL Box")</title>
+    <script>
+        const storedTheme = localStorage.getItem('urlbox-theme');
+        if (storedTheme) {
+            document.documentElement.setAttribute('data-bs-theme', storedTheme);
+        }
+    </script>
+    <link rel="stylesheet" href="~/css/site.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    @RenderSection("Styles", required: false)
+</head>
+<body class="bg-body-secondary">
+    <div class="mobile-topbar d-lg-none">
+        <button id="hamburgerBtn" class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="offcanvas" data-bs-target="#leftMenu" aria-controls="leftMenu" aria-label="Open menu">
+            <i class="bi bi-list"></i>
+        </button>
+        <span class="fw-semibold">Admin</span>
+    </div>
+
+    <aside id="leftSidebar" class="d-none d-lg-flex flex-column align-items-center gap-3">
+        <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary btn-icon" data-bs-placement="right" title="Dashboard">
+            <i class="bi bi-house"></i>
+        </a>
+        <a asp-controller="Admin" asp-action="Dashboard" class="btn btn-warning btn-icon" data-bs-placement="right" title="Admin dashboard">
+            <i class="bi bi-speedometer"></i>
+        </a>
+        @if (isAuthenticated)
+        {
+            <form asp-controller="Account" asp-action="Logout" method="post" class="m-0">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-outline-secondary btn-icon" data-bs-placement="right" title="Logout">
+                    <i class="bi bi-box-arrow-right"></i>
+                </button>
+            </form>
+        }
+        <button id="themeToggleSidebar" type="button" class="btn btn-outline-secondary btn-icon" data-bs-placement="right" title="Dark mode">
+            <i id="themeIconSidebar" class="bi bi-moon-fill"></i>
+        </button>
+        <a href="https://github.com/FindFara/URLBox" target="_blank" class="btn btn-dark btn-icon" data-bs-placement="right" title="GitHub repo">
+            <i class="bi bi-github"></i>
+        </a>
+    </aside>
+
+    <div class="offcanvas offcanvas-start d-lg-none" tabindex="-1" id="leftMenu" aria-labelledby="leftMenuLabel">
+        <div class="offcanvas-header">
+            <h5 id="leftMenuLabel" class="mb-0">Menu</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body d-flex flex-column gap-3">
+            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary w-100" data-bs-dismiss="offcanvas">
+                <i class="bi bi-house me-1"></i> Dashboard
+            </a>
+            <a asp-controller="Admin" asp-action="Dashboard" class="btn btn-warning w-100" data-bs-dismiss="offcanvas">
+                <i class="bi bi-speedometer me-1"></i> Admin dashboard
+            </a>
+            @if (isAuthenticated)
+            {
+                <form asp-controller="Account" asp-action="Logout" method="post" class="d-grid">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-outline-secondary w-100" data-bs-dismiss="offcanvas">
+                        <i class="bi bi-box-arrow-right me-1"></i> Logout
+                    </button>
+                </form>
+            }
+            <button id="themeToggleMobile" type="button" class="btn btn-outline-secondary w-100">
+                <i id="themeIconMobile" class="bi bi-moon-fill me-1"></i> Dark mode
+            </button>
+            <a href="https://github.com/FindFara/URLBox" target="_blank" class="btn btn-dark w-100">
+                <i class="bi bi-github me-1"></i> GitHub
+            </a>
+        </div>
+    </div>
+
+    <main class="container-fluid py-4">
+        @RenderBody()
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        (function () {
+            const KEY = 'urlbox-theme';
+            const htmlEl = document.documentElement;
+            const toggles = [
+                { btn: document.getElementById('themeToggleSidebar'), icon: document.getElementById('themeIconSidebar') },
+                { btn: document.getElementById('themeToggleMobile'), icon: document.getElementById('themeIconMobile') }
+            ].filter(x => x.btn && x.icon);
+
+            const saved = localStorage.getItem(KEY);
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const initial = saved || (prefersDark ? 'dark' : 'light');
+            setTheme(initial);
+
+            toggles.forEach(({ btn }) => btn.addEventListener('click', () => {
+                const next = htmlEl.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
+                setTheme(next);
+            }));
+
+            function setTheme(mode) {
+                htmlEl.setAttribute('data-bs-theme', mode);
+                localStorage.setItem(KEY, mode);
+                toggles.forEach(({ icon }) => {
+                    icon.classList.toggle('bi-moon-fill', mode !== 'dark');
+                    icon.classList.toggle('bi-brightness-high-fill', mode === 'dark');
+                });
+            }
+
+            const tipEls = [].slice.call(document.querySelectorAll('#leftSidebar [title]'));
+            tipEls.forEach(el => new bootstrap.Tooltip(el));
+        })();
+
+        (function () {
+            const ham = document.getElementById('hamburgerBtn');
+            const offcanvasEl = document.getElementById('leftMenu');
+            if (ham && offcanvasEl) {
+                offcanvasEl.addEventListener('show.bs.offcanvas', () => ham.classList.add('invisible'));
+                offcanvasEl.addEventListener('hidden.bs.offcanvas', () => ham.classList.remove('invisible'));
+            }
+        })();
+    </script>
+    @RenderSection("Scripts", required: false)
+</body>
+</html>
