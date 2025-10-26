@@ -8,4 +8,7 @@ public interface IProjectRepository
     Task<IEnumerable<Project>> GetProjectsForRolesAsync(IEnumerable<string> roleNames);
     Task<IDictionary<string, int>> GetProjectIdsByNamesAsync(IEnumerable<string> projectNames);
     Task AddAsync(Project project);
+    Task UpdateAsync(Project project);
+    Task DeleteAsync(int projectId);
+    Task<bool> ExistsByNameAsync(string name, int? excludingId = null);
 }

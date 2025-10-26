@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using URLBox.Domain.Authorization;
 using URLBox.Domain.Entities;
+using URLBox.Infrastructure.Persistance;
 
 namespace URLBox.Infrastructure.Seed
 {
@@ -16,6 +18,9 @@ namespace URLBox.Infrastructure.Seed
             AppRoles.Viewer,
         };
 
+        private const string DefaultTestRole = "TestProjectRole";
+        private const string DefaultTestProject = "Test Project";
+
         public static async Task SeedAsync(IServiceProvider services, IConfiguration configuration)
         {
             using var scope = services.CreateScope();
@@ -24,6 +29,7 @@ namespace URLBox.Infrastructure.Seed
             var roleManager = provider.GetRequiredService<RoleManager<ApplicationRole>>();
             var userManager = provider.GetRequiredService<UserManager<ApplicationUser>>();
             var logger = provider.GetRequiredService<ILoggerFactory>().CreateLogger("IdentitySeeder");
+            var dbContext = provider.GetRequiredService<ApplicationDbContext>();
 
             foreach (var role in DefaultRoles)
             {
@@ -75,6 +81,50 @@ namespace URLBox.Infrastructure.Seed
                 {
                     logger.LogInformation("Administrator role assigned to {UserName}", adminUserName);
                 }
+            }
+
+            var configuredTestRoleName = configuration.GetSection("SeedData:TestRole").Value ?? DefaultTestRole;
+            var configuredTestProjectName = configuration.GetSection("SeedData:TestProject").Value ?? DefaultTestProject;
+
+            ApplicationRole? testRole = await roleManager.FindByNameAsync(configuredTestRoleName);
+            if (testRole is null)
+            {
+                var createTestRoleResult = await roleManager.CreateAsync(new ApplicationRole { Name = configuredTestRoleName });
+                if (!createTestRoleResult.Succeeded)
+                {
+                    var errors = string.Join(" ", createTestRoleResult.Errors.Select(e => e.Description));
+                    logger.LogError("Failed to create test role {Role}: {Errors}", configuredTestRoleName, errors);
+                }
+                else
+                {
+                    testRole = await roleManager.FindByNameAsync(configuredTestRoleName);
+                }
+            }
+
+            if (testRole is not null)
+            {
+                var project = await dbContext.Projects
+                    .Include(p => p.Roles)
+                    .FirstOrDefaultAsync(p => p.Name == configuredTestProjectName);
+
+                if (project is null)
+                {
+                    project = new Project { Name = configuredTestProjectName };
+                    dbContext.Projects.Add(project);
+                }
+
+                if (dbContext.Entry(testRole).State == EntityState.Detached)
+                {
+                    dbContext.Attach(testRole);
+                }
+
+                if (!project.Roles.Any(role => role.Id == testRole.Id))
+                {
+                    project.Roles.Add(testRole);
+                }
+
+                await dbContext.SaveChangesAsync();
+                logger.LogInformation("Ensured test project {Project} is linked to role {Role}", configuredTestProjectName, configuredTestRoleName);
             }
         }
     }
