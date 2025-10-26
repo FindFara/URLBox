@@ -270,7 +270,7 @@
                             <input type="password" class="form-control" id="loginPassword" name="Password" required autocomplete="current-password" />
                         </div>
                         <div class="form-check mb-3">
-                            <input class="form-check-input" type="checkbox" id="loginRememberMe" name="RememberMe" />
+                            @Html.CheckBox("RememberMe", false, new { @class = "form-check-input", id = "loginRememberMe" })
                             <label class="form-check-label" for="loginRememberMe">Remember me</label>
                         </div>
                         <button type="submit" class="btn btn-primary w-100">Login</button>
