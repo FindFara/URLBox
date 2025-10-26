@@ -112,19 +112,6 @@ namespace URLBox.Presentation.Controllers
             return RedirectToAction("Index");
         }
 
-        [Authorize(Roles = "Administrator")]
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> AddProject(string projectName)
-        {
-            if (!string.IsNullOrWhiteSpace(projectName))
-            {
-                await _projectService.AddProjectAsync(projectName.Trim());
-            }
-
-            return RedirectToAction("Index");
-        }
-
         [Authorize]
         [HttpPost]
         [ValidateAntiForgeryToken]

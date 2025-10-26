@@ -89,4 +89,42 @@ public class ProjectRepository : IProjectRepository
         _context.Projects.Add(entity);
         await _context.SaveChangesAsync();
     }
+
+    public async Task UpdateAsync(Project project)
+    {
+        var entity = await _context.Projects.FirstOrDefaultAsync(p => p.Id == project.Id);
+        if (entity is null)
+        {
+            throw new InvalidOperationException($"Project with ID {project.Id} was not found.");
+        }
+
+        entity.Name = project.Name;
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task DeleteAsync(int projectId)
+    {
+        var entity = await _context.Projects.FirstOrDefaultAsync(p => p.Id == projectId);
+        if (entity is null)
+        {
+            throw new InvalidOperationException($"Project with ID {projectId} was not found.");
+        }
+
+        _context.Projects.Remove(entity);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task<bool> ExistsByNameAsync(string name, int? excludingId = null)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return false;
+        }
+
+        var normalized = name.Trim().ToUpperInvariant();
+        return await _context.Projects
+            .AsNoTracking()
+            .Where(p => !excludingId.HasValue || p.Id != excludingId.Value)
+            .AnyAsync(p => p.Name.ToUpper() == normalized);
+    }
 }

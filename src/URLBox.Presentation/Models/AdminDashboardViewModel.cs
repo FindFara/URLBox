@@ -16,5 +16,7 @@ namespace URLBox.Presentation.Models
         public int TotalRoles { get; set; }
 
         public UrlStatisticsViewModel UrlStatistics { get; set; } = new();
+
+        public List<ProjectViewModel> Projects { get; set; } = new();
     }
 }
