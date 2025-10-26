@@ -22,10 +22,9 @@ namespace URLBox.Presentation.Models
         [StringLength(256)]
         public string UserName { get; set; } = string.Empty;
 
-        [Required]
         [EmailAddress]
         [StringLength(256)]
-        public string Email { get; set; } = string.Empty;
+        public string? Email { get; set; }
 
         [Required]
         [DataType(DataType.Password)]
@@ -47,10 +46,9 @@ namespace URLBox.Presentation.Models
         [StringLength(256)]
         public string UserName { get; set; } = string.Empty;
 
-        [Required]
         [EmailAddress]
         [StringLength(256)]
-        public string Email { get; set; } = string.Empty;
+        public string? Email { get; set; }
     }
 
     public class UpdateRoleInputModel

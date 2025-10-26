@@ -341,10 +341,14 @@ namespace URLBox.Presentation.Controllers
                 return RedirectToAction(nameof(Dashboard), new { statusMessage = CollectModelErrors() });
             }
 
+            var trimmedEmail = string.IsNullOrWhiteSpace(input.Email)
+                ? null
+                : input.Email.Trim();
+
             var user = new ApplicationUser
             {
                 UserName = input.UserName.Trim(),
-                Email = input.Email.Trim()
+                Email = trimmedEmail
             };
 
             var result = await _userManager.CreateAsync(user, input.Password);
@@ -374,7 +378,9 @@ namespace URLBox.Presentation.Controllers
             }
 
             user.UserName = input.UserName.Trim();
-            user.Email = input.Email.Trim();
+            user.Email = string.IsNullOrWhiteSpace(input.Email)
+                ? null
+                : input.Email.Trim();
 
             var result = await _userManager.UpdateAsync(user);
             if (!result.Succeeded)
