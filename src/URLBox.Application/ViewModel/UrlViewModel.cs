@@ -1,4 +1,5 @@
-﻿using URLBox.Domain.Enums;
+﻿using System.Collections.Generic;
+using URLBox.Domain.Enums;
 
 namespace URLBox.Application.ViewModel
 {
@@ -10,7 +11,7 @@ namespace URLBox.Application.ViewModel
 
         public string Description { get; set; } = string.Empty;
 
-        public string Tag { get; set; } = string.Empty;
+        public List<string> ProjectTags { get; set; } = new();
 
         public int Order { get; set; }
 

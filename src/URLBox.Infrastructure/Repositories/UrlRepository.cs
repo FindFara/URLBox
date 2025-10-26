@@ -20,13 +20,30 @@ public class UrlRepository : IUrlRepository
     public async Task<IEnumerable<Url>> GetAllAsync()
     {
         return await _context.Urls
-            .Include(u => u.Project)
+            .Include(u => u.Projects)
+                .ThenInclude(p => p.Roles)
             .AsNoTracking()
             .ToListAsync();
     }
 
-    public async Task AddAsync(Url url)
+    public async Task AddAsync(Url url, IEnumerable<int> projectIds)
     {
+        var projectIdList = projectIds?
+            .Distinct()
+            .ToList() ?? new List<int>();
+
+        if (projectIdList.Count > 0)
+        {
+            var projects = await _context.Projects
+                .Where(project => projectIdList.Contains(project.Id))
+                .ToListAsync();
+
+            foreach (var project in projects)
+            {
+                url.Projects.Add(project);
+            }
+        }
+
         _context.Urls.Add(url);
         await _context.SaveChangesAsync();
     }
@@ -44,7 +61,8 @@ public class UrlRepository : IUrlRepository
     public async Task<Url?> GetByIdAsync(int id)
     {
         return await _context.Urls
-            .Include(u => u.Project)
+            .Include(u => u.Projects)
+                .ThenInclude(p => p.Roles)
             .AsNoTracking()
             .FirstOrDefaultAsync(u => u.Id == id);
     }

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using URLBox.Domain.Enums;
 
@@ -21,8 +22,6 @@ namespace URLBox.Domain.Entities
 
         public string? CreatedByUserId { get; set; }
 
-        public int ProjectId { get; set; }
-
-        public Project? Project { get; set; }
+        public ICollection<Project> Projects { get; set; } = new List<Project>();
     }
 }

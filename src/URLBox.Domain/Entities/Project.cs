@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
 namespace URLBox.Domain.Entities
@@ -8,7 +9,7 @@ namespace URLBox.Domain.Entities
         public int Id { get; set; }
         [Required]
         public required string Name { get; set; }
-        public Team Teams { get; set; }
-        public List<Url> Urls { get; set; }
+        public ICollection<ApplicationRole> Roles { get; set; } = new List<ApplicationRole>();
+        public ICollection<Url> Urls { get; set; } = new List<Url>();
     }
 }

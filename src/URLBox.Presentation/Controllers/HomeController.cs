@@ -52,7 +52,7 @@ namespace URLBox.Presentation.Controllers
         [Authorize]
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> AddUrl(string url, string description, EnvironmentType environment, string project, bool isPublic = false)
+        public async Task<IActionResult> AddUrl(string url, string description, EnvironmentType environment, List<string> projects, bool isPublic = false)
         {
             var access = await BuildUserAccessContextAsync();
             if (!access.IsAdmin && !access.IsManager)
@@ -61,7 +61,10 @@ namespace URLBox.Presentation.Controllers
                 return RedirectToAction("Index");
             }
 
-            if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(project) || string.IsNullOrWhiteSpace(description))
+            if (string.IsNullOrWhiteSpace(url)
+                || string.IsNullOrWhiteSpace(description)
+                || projects is null
+                || !projects.Any(p => !string.IsNullOrWhiteSpace(p)))
             {
                 SetStatusMessage("Please provide all required fields for the new URL.", "warning");
                 return RedirectToAction("Index");
@@ -69,8 +72,19 @@ namespace URLBox.Presentation.Controllers
 
             var trimmedUrl = url.Trim();
             var trimmedDescription = description.Trim();
-            var trimmedProject = project.Trim();
-            var allowedProjects = access.AllowedProjects?.ToList();
+            var selectedProjects = projects
+                .Where(p => !string.IsNullOrWhiteSpace(p))
+                .Select(p => p.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            IEnumerable<string>? allowedProjects = null;
+            if (!access.IsAdmin)
+            {
+                allowedProjects = (await _projectService.GetProjectsForRolesAsync(access.NonSystemRoles))
+                    .Select(p => p.Name)
+                    .ToList();
+            }
 
             try
             {
@@ -78,7 +92,7 @@ namespace URLBox.Presentation.Controllers
                     trimmedUrl,
                     trimmedDescription,
                     environment,
-                    trimmedProject,
+                    selectedProjects,
                     isPublic,
                     access.UserId,
                     allowedProjects,
@@ -123,7 +137,13 @@ namespace URLBox.Presentation.Controllers
                 return RedirectToAction("Index");
             }
 
-            var allowedProjects = access.AllowedProjects?.ToList();
+            IEnumerable<string>? allowedProjects = null;
+            if (!access.IsAdmin)
+            {
+                allowedProjects = (await _projectService.GetProjectsForRolesAsync(access.NonSystemRoles))
+                    .Select(p => p.Name)
+                    .ToList();
+            }
 
             try
             {
@@ -153,34 +173,47 @@ namespace URLBox.Presentation.Controllers
         {
             var access = await BuildUserAccessContextAsync();
             var includeOnlyPublic = isPublicPage || !access.IsAuthenticated;
-            var projects = (await _projectService.GetProjectsAsync()).ToList();
-            var allowedProjects = access.AllowedProjects?.ToList();
+            var allProjects = (await _projectService.GetProjectsAsync()).ToList();
+            var accessibleProjects = access.IsAdmin
+                ? allProjects
+                : (await _projectService.GetProjectsForRolesAsync(access.NonSystemRoles)).ToList();
 
-            if (allowedProjects is not null && !includeOnlyPublic)
-            {
-                var allowedSet = new HashSet<string>(allowedProjects, StringComparer.OrdinalIgnoreCase);
-                projects = projects.Where(p => allowedSet.Contains(p.Name)).ToList();
-            }
+            IEnumerable<string>? allowedProjects = access.IsAdmin
+                ? null
+                : accessibleProjects.Select(p => p.Name).ToList();
 
             var urls = (await _urlService.GetUrlsAsync(allowedProjects, access.UserId, includeOnlyPublic, access.IsAdmin)).ToList();
 
+            List<ProjectViewModel> projects;
             if (includeOnlyPublic)
             {
                 var visibleProjects = urls
-                    .Select(u => u.Tag)
+                    .SelectMany(u => u.ProjectTags)
                     .Where(name => !string.IsNullOrWhiteSpace(name))
                     .Distinct(StringComparer.OrdinalIgnoreCase)
                     .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-                projects = projects
+                projects = allProjects
                     .Where(p => visibleProjects.Contains(p.Name))
                     .OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase)
                     .ToList();
             }
+            else if (access.IsAdmin)
+            {
+                projects = allProjects;
+            }
+            else
+            {
+                projects = accessibleProjects.ToList();
+            }
+
+            var manageableProjects = isPublicPage
+                ? Enumerable.Empty<ProjectViewModel>()
+                : (access.IsAdmin ? allProjects : accessibleProjects);
 
             ViewBag.Projects = projects;
-            ViewBag.ManageableProjects = isPublicPage ? Enumerable.Empty<ProjectViewModel>() : projects;
-            var hasManageableProjects = allowedProjects is { Count: > 0 };
+            ViewBag.ManageableProjects = manageableProjects;
+            var hasManageableProjects = manageableProjects.Any();
             ViewBag.CanManageUrls = !isPublicPage
                 && access.IsAuthenticated
                 && (access.IsAdmin || (access.IsManager && hasManageableProjects));
@@ -231,9 +264,7 @@ namespace URLBox.Presentation.Controllers
 
         private sealed record UserAccessContext(bool IsAuthenticated, bool IsAdmin, bool IsManager, string? UserId, IReadOnlyCollection<string> Roles)
         {
-            public IEnumerable<string>? AllowedProjects => IsAdmin
-                ? null
-                : Roles.Where(role => !AppRoles.IsSystemRole(role));
+            public IEnumerable<string> NonSystemRoles => Roles.Where(role => !AppRoles.IsSystemRole(role));
 
             public static UserAccessContext Anonymous { get; } = new(false, false, false, null, Array.Empty<string>());
         }
