@@ -128,6 +128,36 @@ namespace URLBox.Infrastructure.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("ProjectRole", b =>
+                {
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RoleId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("ProjectId", "RoleId");
+
+                    b.HasIndex("RoleId");
+
+                    b.ToTable("ProjectRole");
+                });
+
+            modelBuilder.Entity("ProjectUrl", b =>
+                {
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UrlId")
+                        .HasColumnType("int");
+
+                    b.HasKey("ProjectId", "UrlId");
+
+                    b.HasIndex("UrlId");
+
+                    b.ToTable("ProjectUrl");
+                });
+
             modelBuilder.Entity("URLBox.Domain.Entities.ApplicationRole", b =>
                 {
                     b.Property<string>("Id")
@@ -267,36 +297,6 @@ namespace URLBox.Infrastructure.Migrations
                     b.ToTable("Urls");
                 });
 
-            modelBuilder.Entity("ProjectRole", b =>
-                {
-                    b.Property<int>("ProjectId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("RoleId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("ProjectId", "RoleId");
-
-                    b.HasIndex("RoleId");
-
-                    b.ToTable("ProjectRole");
-                });
-
-            modelBuilder.Entity("ProjectUrl", b =>
-                {
-                    b.Property<int>("ProjectId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("UrlId")
-                        .HasColumnType("int");
-
-                    b.HasKey("ProjectId", "UrlId");
-
-                    b.HasIndex("UrlId");
-
-                    b.ToTable("ProjectUrl");
-                });
-
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("URLBox.Domain.Entities.ApplicationRole", null)
@@ -350,15 +350,15 @@ namespace URLBox.Infrastructure.Migrations
 
             modelBuilder.Entity("ProjectRole", b =>
                 {
-                    b.HasOne("URLBox.Domain.Entities.ApplicationRole", null)
-                        .WithMany()
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("URLBox.Domain.Entities.Project", null)
                         .WithMany()
                         .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("URLBox.Domain.Entities.ApplicationRole", null)
+                        .WithMany()
+                        .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
@@ -376,23 +376,6 @@ namespace URLBox.Infrastructure.Migrations
                         .HasForeignKey("UrlId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("URLBox.Domain.Entities.ApplicationRole", b =>
-                {
-                    b.Navigation("Projects");
-                });
-
-            modelBuilder.Entity("URLBox.Domain.Entities.Project", b =>
-                {
-                    b.Navigation("Roles");
-
-                    b.Navigation("Urls");
-                });
-
-            modelBuilder.Entity("URLBox.Domain.Entities.Url", b =>
-                {
-                    b.Navigation("Projects");
                 });
 #pragma warning restore 612, 618
         }

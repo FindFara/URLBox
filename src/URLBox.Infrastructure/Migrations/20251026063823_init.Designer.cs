@@ -12,8 +12,8 @@ using URLBox.Infrastructure.Persistance;
 namespace URLBox.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251025154134_add-init")]
-    partial class addinit
+    [Migration("20251026063823_init")]
+    partial class init
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -131,6 +131,36 @@ namespace URLBox.Infrastructure.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("ProjectRole", b =>
+                {
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RoleId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("ProjectId", "RoleId");
+
+                    b.HasIndex("RoleId");
+
+                    b.ToTable("ProjectRole");
+                });
+
+            modelBuilder.Entity("ProjectUrl", b =>
+                {
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UrlId")
+                        .HasColumnType("int");
+
+                    b.HasKey("ProjectId", "UrlId");
+
+                    b.HasIndex("UrlId");
+
+                    b.ToTable("ProjectUrl");
+                });
+
             modelBuilder.Entity("URLBox.Domain.Entities.ApplicationRole", b =>
                 {
                     b.Property<string>("Id")
@@ -235,31 +265,9 @@ namespace URLBox.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("TeamsId")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
-
-                    b.HasIndex("TeamsId");
 
                     b.ToTable("Projects");
-                });
-
-            modelBuilder.Entity("URLBox.Domain.Entities.Team", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Teams");
                 });
 
             modelBuilder.Entity("URLBox.Domain.Entities.Url", b =>
@@ -283,16 +291,11 @@ namespace URLBox.Infrastructure.Migrations
                     b.Property<bool>("IsPublic")
                         .HasColumnType("bit");
 
-                    b.Property<int>("ProjectId")
-                        .HasColumnType("int");
-
                     b.Property<string>("UrlValue")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ProjectId");
 
                     b.ToTable("Urls");
                 });
@@ -348,36 +351,34 @@ namespace URLBox.Infrastructure.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("URLBox.Domain.Entities.Project", b =>
+            modelBuilder.Entity("ProjectRole", b =>
                 {
-                    b.HasOne("URLBox.Domain.Entities.Team", "Teams")
-                        .WithMany("Projects")
-                        .HasForeignKey("TeamsId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Teams");
-                });
-
-            modelBuilder.Entity("URLBox.Domain.Entities.Url", b =>
-                {
-                    b.HasOne("URLBox.Domain.Entities.Project", "Project")
-                        .WithMany("Urls")
+                    b.HasOne("URLBox.Domain.Entities.Project", null)
+                        .WithMany()
                         .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Project");
+                    b.HasOne("URLBox.Domain.Entities.ApplicationRole", null)
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
-            modelBuilder.Entity("URLBox.Domain.Entities.Project", b =>
+            modelBuilder.Entity("ProjectUrl", b =>
                 {
-                    b.Navigation("Urls");
-                });
+                    b.HasOne("URLBox.Domain.Entities.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
-            modelBuilder.Entity("URLBox.Domain.Entities.Team", b =>
-                {
-                    b.Navigation("Projects");
+                    b.HasOne("URLBox.Domain.Entities.Url", null)
+                        .WithMany()
+                        .HasForeignKey("UrlId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }
