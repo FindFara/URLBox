@@ -234,15 +234,41 @@
 
                             {
                                 <li class="list-group-item d-flex justify-content-between align-items-center gap-3">
-                                    <div>
+                                    <div class="flex-grow-1">
                                         <div class="fw-medium">@role.RoleName</div>
-                                        <small class="text-muted">@role.AssignedUserCount user@(role.AssignedUserCount == 1 ? string.Empty : "s")</small>
+                                        <small class="text-muted d-block">@role.AssignedUserCount user@(role.AssignedUserCount == 1 ? string.Empty : "s")</small>
+                                        @if (role.AssignedProjects.Any())
+                                        {
+                                            <div class="d-flex flex-wrap gap-2 mt-2">
+                                                @foreach (var project in role.AssignedProjects)
+                                                {
+                                                    <form asp-action="RemoveProjectFromRole" method="post" class="d-inline">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="projectId" value="@project.Id" />
+                                                        <input type="hidden" name="roleId" value="@role.RoleId" />
+                                                        <button type="submit" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1">
+                                                            <span>@project.Name</span>
+                                                            <i class="bi bi-x-lg"></i>
+                                                        </button>
+                                                    </form>
+                                                }
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="text-muted small mt-2">No projects assigned</div>
+                                        }
                                     </div>
                                     <div class="btn-group" role="group">
                                         <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="modal"
                                                 data-bs-target="#renameRoleModal" data-role-id="@role.RoleId"
                                                 data-role-name="@role.RoleName">
                                             <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="modal"
+                                                data-bs-target="#assignProjectModal" data-role-id="@role.RoleId"
+                                                data-role-name="@role.RoleName">
+                                            <i class="bi bi-kanban"></i>
                                         </button>
                                         <button class="btn btn-sm btn-outline-danger" type="button" data-bs-toggle="modal"
                                                 data-bs-target="#deleteRoleModal" data-role-id="@role.RoleId"
@@ -523,6 +549,39 @@
     </div>
 </div>
 
+<!-- Assign project modal -->
+<div class="modal fade" id="assignProjectModal" tabindex="-1" aria-labelledby="assignProjectLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="assignProjectLabel">Assign project</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form asp-action="AssignProjectToRole" method="post" id="assignProjectForm">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="roleId" id="assignProjectRoleId" />
+                    <div class="mb-3">
+                        <label class="form-label">Role</label>
+                        <input type="text" class="form-control" id="assignProjectRoleName" readonly />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="assignProjectProjectId">Select project</label>
+                        <select class="form-select" id="assignProjectProjectId" name="projectId" required>
+                            <option value="" disabled selected>Choose project...</option>
+                            @foreach (var project in Model.Projects)
+                            {
+                                <option value="@project.Id">@project.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Assign project</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
     <script>
@@ -600,6 +659,26 @@
                 if (userIdInput && userNameInput && select) {
                     userIdInput.value = userId ?? '';
                     userNameInput.value = userName ?? '';
+                    select.selectedIndex = 0;
+                }
+            });
+        }
+
+        const assignProjectModal = document.getElementById('assignProjectModal');
+        if (assignProjectModal) {
+            assignProjectModal.addEventListener('show.bs.modal', event => {
+                const button = event.relatedTarget;
+                if (!button) return;
+                const roleId = button.getAttribute('data-role-id');
+                const roleName = button.getAttribute('data-role-name');
+
+                const roleIdInput = document.getElementById('assignProjectRoleId');
+                const roleNameInput = document.getElementById('assignProjectRoleName');
+                const select = document.getElementById('assignProjectProjectId');
+
+                if (roleIdInput && roleNameInput && select) {
+                    roleIdInput.value = roleId ?? '';
+                    roleNameInput.value = roleName ?? '';
                     select.selectedIndex = 0;
                 }
             });

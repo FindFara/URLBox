@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using URLBox.Application.Services;
+using URLBox.Application.ViewModel;
 using URLBox.Domain.Entities;
 using URLBox.Presentation.Models;
 
@@ -43,6 +44,7 @@ namespace URLBox.Presentation.Controllers
                 .ToListAsync();
 
             var roleEntities = await _roleManager.Roles
+                .Include(r => r.Projects)
                 .OrderBy(r => r.Name)
                 .ToListAsync();
 
@@ -83,7 +85,15 @@ namespace URLBox.Presentation.Controllers
                 {
                     RoleId = role.Id,
                     RoleName = roleName,
-                    AssignedUserCount = count
+                    AssignedUserCount = count,
+                    AssignedProjects = role.Projects
+                        .OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase)
+                        .Select(p => new ProjectViewModel
+                        {
+                            Id = p.Id,
+                            Name = p.Name
+                        })
+                        .ToList()
                 });
             }
 
@@ -407,6 +417,76 @@ namespace URLBox.Presentation.Controllers
 
             _logger.LogInformation("User '{UserName}' deleted by {Admin}", user.UserName, User.Identity?.Name);
             return RedirectToAction(nameof(Dashboard), new { statusMessage = $"User '{user.UserName}' deleted." });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AssignProjectToRole(int projectId, string roleId)
+        {
+            if (projectId <= 0 || string.IsNullOrWhiteSpace(roleId))
+            {
+                return RedirectToAction(nameof(Dashboard), new { statusMessage = "Project and role are required." });
+            }
+
+            try
+            {
+                await _projectService.AssignRoleToProjectAsync(projectId, roleId);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return RedirectToAction(nameof(Dashboard), new { statusMessage = ex.Message });
+            }
+
+            var project = (await _projectService.GetProjectsAsync()).FirstOrDefault(p => p.Id == projectId);
+            var role = await _roleManager.FindByIdAsync(roleId);
+            var projectName = project?.Name ?? $"ID {projectId}";
+            var roleName = role?.Name ?? roleId;
+
+            _logger.LogInformation(
+                "Project '{ProjectName}' assigned to role '{RoleName}' by {Admin}",
+                projectName,
+                roleName,
+                User.Identity?.Name);
+
+            return RedirectToAction(nameof(Dashboard), new
+            {
+                statusMessage = $"Assigned project '{projectName}' to role '{roleName}'."
+            });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RemoveProjectFromRole(int projectId, string roleId)
+        {
+            if (projectId <= 0 || string.IsNullOrWhiteSpace(roleId))
+            {
+                return RedirectToAction(nameof(Dashboard), new { statusMessage = "Project and role are required." });
+            }
+
+            try
+            {
+                await _projectService.RemoveRoleFromProjectAsync(projectId, roleId);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return RedirectToAction(nameof(Dashboard), new { statusMessage = ex.Message });
+            }
+
+            var project = (await _projectService.GetProjectsAsync()).FirstOrDefault(p => p.Id == projectId);
+            var role = await _roleManager.FindByIdAsync(roleId);
+            var projectName = project?.Name ?? $"ID {projectId}";
+            var roleName = role?.Name ?? roleId;
+
+            _logger.LogInformation(
+                "Project '{ProjectName}' removed from role '{RoleName}' by {Admin}",
+                projectName,
+                roleName,
+                User.Identity?.Name);
+
+            return RedirectToAction(nameof(Dashboard), new
+            {
+                statusMessage = $"Removed project '{projectName}' from role '{roleName}'."
+            });
         }
 
         private string CollectModelErrors()

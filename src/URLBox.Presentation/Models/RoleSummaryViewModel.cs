@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using URLBox.Application.ViewModel;
 
 namespace URLBox.Presentation.Models
 {
@@ -9,6 +11,8 @@ namespace URLBox.Presentation.Models
         public string RoleName { get; set; } = string.Empty;
 
         public int AssignedUserCount { get; set; }
+
+        public List<ProjectViewModel> AssignedProjects { get; set; } = new();
     }
 
     public class CreateUserInputModel

@@ -74,5 +74,35 @@ namespace URLBox.Application.Services
         {
             return _repository.DeleteAsync(id);
         }
+
+        public async Task AssignRoleToProjectAsync(int projectId, string roleId)
+        {
+            if (projectId <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(projectId));
+            }
+
+            if (string.IsNullOrWhiteSpace(roleId))
+            {
+                throw new ArgumentException("Role identifier is required.", nameof(roleId));
+            }
+
+            await _repository.AssignRoleAsync(projectId, roleId);
+        }
+
+        public async Task RemoveRoleFromProjectAsync(int projectId, string roleId)
+        {
+            if (projectId <= 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(projectId));
+            }
+
+            if (string.IsNullOrWhiteSpace(roleId))
+            {
+                throw new ArgumentException("Role identifier is required.", nameof(roleId));
+            }
+
+            await _repository.RemoveRoleAsync(projectId, roleId);
+        }
     }
 }

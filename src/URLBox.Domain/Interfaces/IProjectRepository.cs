@@ -11,4 +11,6 @@ public interface IProjectRepository
     Task UpdateAsync(Project project);
     Task DeleteAsync(int projectId);
     Task<bool> ExistsByNameAsync(string name, int? excludingId = null);
+    Task AssignRoleAsync(int projectId, string roleId);
+    Task RemoveRoleAsync(int projectId, string roleId);
 }
