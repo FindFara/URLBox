@@ -45,7 +45,7 @@ namespace URLBox.Presentation.Controllers
         [Authorize]
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> AddUrl(string url, string description, EnvironmentType environment, List<string> projects, bool isPublic = false)
+        public async Task<IActionResult> AddUrl(string url, string description, EnvironmentType environment, List<string> projects)
         {
             var access = await BuildUserAccessContextAsync();
             if (!access.IsAdmin && !access.IsManager)
@@ -86,7 +86,6 @@ namespace URLBox.Presentation.Controllers
                     trimmedDescription,
                     environment,
                     selectedProjects,
-                    isPublic,
                     access.UserId,
                     allowedProjects,
                     access.IsAdmin);
@@ -152,7 +151,6 @@ namespace URLBox.Presentation.Controllers
         private async Task<IActionResult> RenderIndexAsync()
         {
             var access = await BuildUserAccessContextAsync();
-            var includeOnlyPublic = !access.IsAuthenticated;
             var allProjects = (await _projectService.GetProjectsAsync()).ToList();
             var accessibleProjects = access.IsAdmin
                 ? allProjects
@@ -162,7 +160,7 @@ namespace URLBox.Presentation.Controllers
                 ? null
                 : accessibleProjects.Select(p => p.Name).ToList();
 
-            var urls = (await _urlService.GetUrlsAsync(allowedProjects, access.UserId, includeOnlyPublic, access.IsAdmin)).ToList();
+            var urls = (await _urlService.GetUrlsAsync(allowedProjects, access.UserId, access.IsAdmin)).ToList();
 
             List<ProjectViewModel> projects;
             if (access.IsAdmin)
