@@ -43,8 +43,36 @@ namespace URLBox.Application.Services
 
         public async Task AddProjectAsync(string name)
         {
-            var project = new Project { Name = name };
+            var trimmedName = name.Trim();
+            if (await _repository.ExistsByNameAsync(trimmedName))
+            {
+                throw new InvalidOperationException($"A project named '{trimmedName}' already exists.");
+            }
+
+            var project = new Project { Name = trimmedName };
             await _repository.AddAsync(project);
+        }
+
+        public async Task UpdateProjectAsync(int id, string name)
+        {
+            var trimmedName = name.Trim();
+            if (await _repository.ExistsByNameAsync(trimmedName, id))
+            {
+                throw new InvalidOperationException($"A project named '{trimmedName}' already exists.");
+            }
+
+            var project = new Project
+            {
+                Id = id,
+                Name = trimmedName
+            };
+
+            await _repository.UpdateAsync(project);
+        }
+
+        public Task DeleteProjectAsync(int id)
+        {
+            return _repository.DeleteAsync(id);
         }
     }
 }
