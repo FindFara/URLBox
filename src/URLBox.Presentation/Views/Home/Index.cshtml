@@ -6,7 +6,7 @@
 @{
     Layout = null;
     var projects = (ViewBag.Projects as IEnumerable<ProjectViewModel> ?? Enumerable.Empty<ProjectViewModel>()).ToList();
-    var manageableProjects = (ViewBag.ManageableProjects as IEnumerable<ProjectViewModel> ?? Enumerable.Empty<ProjectViewModel>()).ToList();
+    var assignableProjects = (ViewBag.AssignableProjects as IEnumerable<ProjectViewModel> ?? Enumerable.Empty<ProjectViewModel>()).ToList();
     var loginError = ViewBag.LoginError as string;
     var statusMessage = ViewBag.StatusMessage as string;
     var statusMessageTone = ((ViewBag.StatusMessageType as string) ?? "info").ToString().ToLowerInvariant();
@@ -241,7 +241,7 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        @if (manageableProjects.Any())
+                        @if (assignableProjects.Any())
                         {
                             <form method="post" asp-action="AddUrl">
                                 @Html.AntiForgeryToken()
@@ -256,7 +256,7 @@
                                 <div class="form-group mb-3">
                                     <label for="project">Projects</label>
                                     <select class="form-select" id="project" name="projects" multiple required>
-                                        @foreach (var project in manageableProjects)
+                                        @foreach (var project in assignableProjects)
                                         {
                                             <option value="@project.Name">@project.Name</option>
                                         }
@@ -291,7 +291,7 @@
                         else
                         {
                             <div class="alert alert-info mb-0" role="alert">
-                                No projects are available for you to manage yet.
+                                No projects are available for you to assign URLs to yet.
                             </div>
                         }
                     </div>
@@ -363,7 +363,7 @@
         {
             <div class="alert alert-warning d-flex align-items-center gap-2" role="alert">
                 <i class="bi bi-globe"></i>
-                <span>This read-only view is available to everyone. Sign in to manage URLs and projects.</span>
+                <span>This read-only view is available to everyone. Sign in to manage URLs.</span>
             </div>
         }
         @if (!string.IsNullOrEmpty(statusMessage))
