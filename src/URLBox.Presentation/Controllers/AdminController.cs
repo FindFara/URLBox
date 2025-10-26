@@ -19,17 +19,20 @@ namespace URLBox.Presentation.Controllers
         private readonly RoleManager<ApplicationRole> _roleManager;
         private readonly ILogger<AdminController> _logger;
         private readonly UrlService _urlService;
+        private readonly ProjectService _projectService;
 
         public AdminController(
             UserManager<ApplicationUser> userManager,
             RoleManager<ApplicationRole> roleManager,
             ILogger<AdminController> logger,
-            UrlService urlService)
+            UrlService urlService,
+            ProjectService projectService)
         {
             _userManager = userManager;
             _roleManager = roleManager;
             _logger = logger;
             _urlService = urlService;
+            _projectService = projectService;
         }
 
         [HttpGet]
@@ -85,11 +88,80 @@ namespace URLBox.Presentation.Controllers
             }
 
             var urlStats = await _urlService.GetStatisticsAsync();
+            var projects = (await _projectService.GetProjectsAsync())
+                .OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
             model.TotalUsers = model.Users.Count;
             model.TotalRoles = model.Roles.Count;
             model.UrlStatistics = urlStats;
+            model.Projects = projects;
 
             return View(model);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateProject(string projectName)
+        {
+            if (string.IsNullOrWhiteSpace(projectName))
+            {
+                return RedirectToAction(nameof(Dashboard), new { statusMessage = "Project name is required." });
+            }
+
+            var trimmedName = projectName.Trim();
+
+            try
+            {
+                await _projectService.AddProjectAsync(trimmedName);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return RedirectToAction(nameof(Dashboard), new { statusMessage = ex.Message });
+            }
+
+            _logger.LogInformation("Project '{ProjectName}' created by {Admin}", trimmedName, User.Identity?.Name);
+            return RedirectToAction(nameof(Dashboard), new { statusMessage = $"Project '{trimmedName}' created." });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateProject(int projectId, string projectName)
+        {
+            if (string.IsNullOrWhiteSpace(projectName))
+            {
+                return RedirectToAction(nameof(Dashboard), new { statusMessage = "Project name is required." });
+            }
+
+            var trimmedName = projectName.Trim();
+
+            try
+            {
+                await _projectService.UpdateProjectAsync(projectId, trimmedName);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return RedirectToAction(nameof(Dashboard), new { statusMessage = ex.Message });
+            }
+
+            _logger.LogInformation("Project '{ProjectName}' updated by {Admin}", trimmedName, User.Identity?.Name);
+            return RedirectToAction(nameof(Dashboard), new { statusMessage = $"Project renamed to '{trimmedName}'." });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteProject(int projectId)
+        {
+            try
+            {
+                await _projectService.DeleteProjectAsync(projectId);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return RedirectToAction(nameof(Dashboard), new { statusMessage = ex.Message });
+            }
+
+            _logger.LogInformation("Project with id {ProjectId} deleted by {Admin}", projectId, User.Identity?.Name);
+            return RedirectToAction(nameof(Dashboard), new { statusMessage = "Project deleted." });
         }
 
         [HttpPost]
