@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using URLBox.Application.Services;
+using URLBox.Domain.Authorization;
 using URLBox.Domain.Entities;
 using URLBox.Presentation.Models;
 
@@ -242,6 +243,11 @@ namespace URLBox.Presentation.Controllers
             }
 
             var roleName = role.Name ?? string.Empty;
+
+            if (AppRoles.IsSystemRole(roleName))
+            {
+                return RedirectToAction(nameof(Dashboard), new { statusMessage = $"System role '{roleName}' cannot be deleted." });
+            }
 
             var usersInRole = await _userManager.GetUsersInRoleAsync(roleName);
             foreach (var user in usersInRole)
