@@ -362,3 +362,7 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 
+# Local application configuration overrides
+src/URLBox.Presentation/appsettings.*.local.json
+src/URLBox.Presentation/appsettings.Local.json
+
