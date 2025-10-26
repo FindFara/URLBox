@@ -285,9 +285,6 @@ namespace URLBox.Infrastructure.Migrations
                     b.Property<int>("Environment")
                         .HasColumnType("int");
 
-                    b.Property<bool>("IsPublic")
-                        .HasColumnType("bit");
-
                     b.Property<string>("UrlValue")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");

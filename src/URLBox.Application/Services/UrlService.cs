@@ -24,7 +24,6 @@ namespace URLBox.Application.Services
         public async Task<IEnumerable<UrlViewModel>> GetUrlsAsync(
             IEnumerable<string>? allowedProjects = null,
             string? currentUserId = null,
-            bool includeOnlyPublic = false,
             bool isAdmin = false)
         {
             var items = (await _repository.GetAllAsync()).ToList();
@@ -34,16 +33,11 @@ namespace URLBox.Application.Services
 
             IEnumerable<Url> filtered = items;
 
-            if (includeOnlyPublic)
-            {
-                filtered = items.Where(url => url.IsPublic);
-            }
-            else if (!isAdmin && allowedSet is not null)
+            if (!isAdmin && allowedSet is not null)
             {
                 if (allowedSet.Count > 0)
                 {
                     filtered = items.Where(url =>
-                        url.IsPublic ||
                         (url.Projects.Any(project =>
                             !string.IsNullOrWhiteSpace(project.Name)
                             && allowedSet.Contains(project.Name))) ||
@@ -53,7 +47,6 @@ namespace URLBox.Application.Services
                 else
                 {
                     filtered = items.Where(url =>
-                        url.IsPublic ||
                         (!string.IsNullOrEmpty(currentUserId) &&
                          string.Equals(url.CreatedByUserId, currentUserId, StringComparison.Ordinal)));
                 }
@@ -76,7 +69,6 @@ namespace URLBox.Application.Services
                         Id = item.Id,
                         UrlValue = item.UrlValue,
                         ProjectTags = projectNames,
-                        IsPublic = item.IsPublic,
                         CanManage = isAdmin
                             || (allowedSet is not null
                                 && projectNames.Any(name => allowedSet.Contains(name)))
@@ -94,7 +86,6 @@ namespace URLBox.Application.Services
             string description,
             EnvironmentType environment,
             IEnumerable<string> projects,
-            bool isPublic,
             string? createdByUserId,
             IEnumerable<string>? allowedProjects,
             bool isAdmin)
@@ -134,7 +125,6 @@ namespace URLBox.Application.Services
                 UrlValue = urlValue,
                 Description = description,
                 Environment = environment,
-                IsPublic = isPublic,
                 CreatedByUserId = createdByUserId
             };
 
@@ -180,8 +170,7 @@ namespace URLBox.Application.Services
             var items = (await _repository.GetAllAsync()).ToList();
             var stats = new UrlStatisticsViewModel
             {
-                TotalUrls = items.Count,
-                PublicUrls = items.Count(url => url.IsPublic)
+                TotalUrls = items.Count
             };
 
             var roleAssignments = items
