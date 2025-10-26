@@ -1,6 +1,3 @@
-using System;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -19,8 +16,6 @@ namespace URLBox.Infrastructure.Seed
             AppRoles.Administrator,
             AppRoles.Manager,
             AppRoles.Viewer,
-            "DirectDebit",
-            "AsaPay"
         };
 
         private const string DefaultTestRole = "TestProjectRole";
