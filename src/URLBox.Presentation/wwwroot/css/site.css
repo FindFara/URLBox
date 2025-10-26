@@ -196,6 +196,19 @@ html[data-bs-theme="dark"] .offcanvas {
     z-index: 1020;
 }
 
+/* Admin dashboard scrollable sections */
+.admin-scroll-section {
+    max-height: 22.5rem;
+    overflow-y: auto;
+    scrollbar-gutter: stable both-edges;
+}
+
+@media (min-width: 1200px) {
+    .admin-scroll-section {
+        max-height: 26rem;
+    }
+}
+
     /* Make the button itself not hug the edge even if padding collapses */
     .mobile-topbar .btn {
         min-width: 42px;

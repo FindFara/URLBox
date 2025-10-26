@@ -30,12 +30,12 @@
 }
 
 <section class="py-4">
-    <div class="d-flex flex-column flex-xl-row justify-content-between align-items-xl-center gap-3 mb-4">
+    <div class="d-flex flex-column flex-xl-row gap-3 mb-4 align-items-start align-items-xl-center">
         <div>
             <h1 class="h3 mb-1">Administration</h1>
             <p class="text-muted mb-0">Manage team members and roles that control access to protected URLs.</p>
         </div>
-        <div class="d-flex flex-wrap gap-2">
+        <div class="d-flex flex-wrap gap-2 align-self-start align-self-xl-center">
             <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#createUserModal">
                 <i class="bi bi-person-plus me-1"></i>
                 New user
@@ -126,7 +126,7 @@
                     }
                     else
                     {
-                        <div class="table-responsive">
+                        <div class="table-responsive admin-scroll-section">
                             <table class="table align-middle mb-0">
                                 <thead>
                                     <tr>
@@ -217,56 +217,57 @@
                     }
                     else
                     {
-                        <ul class="list-group list-group-flush">
-                            @foreach (var role in Model.Roles)
-
-                            {
-                                <li class="list-group-item d-flex justify-content-between align-items-center gap-3">
-                                    <div class="flex-grow-1">
-                                        <div class="fw-medium">@role.RoleName</div>
-                                        <small class="text-muted d-block">@role.AssignedUserCount user@(role.AssignedUserCount == 1 ? string.Empty : "s")</small>
-                                        @if (role.AssignedProjects.Any())
-                                        {
-                                            <div class="d-flex flex-wrap gap-2 mt-2">
-                                                @foreach (var project in role.AssignedProjects)
-                                                {
-                                                    <form asp-action="RemoveProjectFromRole" method="post" class="d-inline">
-                                                        @Html.AntiForgeryToken()
-                                                        <input type="hidden" name="projectId" value="@project.Id" />
-                                                        <input type="hidden" name="roleId" value="@role.RoleId" />
-                                                        <button type="submit" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1">
-                                                            <span>@project.Name</span>
-                                                            <i class="bi bi-x-lg"></i>
-                                                        </button>
-                                                    </form>
-                                                }
-                                            </div>
-                                        }
-                                        else
-                                        {
-                                            <div class="text-muted small mt-2">No projects assigned</div>
-                                        }
-                                    </div>
-                                    <div class="btn-group" role="group">
-                                        <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="modal"
-                                                data-bs-target="#renameRoleModal" data-role-id="@role.RoleId"
-                                                data-role-name="@role.RoleName">
-                                            <i class="bi bi-pencil"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="modal"
-                                                data-bs-target="#assignProjectModal" data-role-id="@role.RoleId"
-                                                data-role-name="@role.RoleName">
-                                            <i class="bi bi-kanban"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-danger" type="button" data-bs-toggle="modal"
-                                                data-bs-target="#deleteRoleModal" data-role-id="@role.RoleId"
-                                                data-role-name="@role.RoleName">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </div>
-                                </li>
-                            }
-                        </ul>
+                        <div class="admin-scroll-section">
+                            <ul class="list-group list-group-flush">
+                                @foreach (var role in Model.Roles)
+                                {
+                                    <li class="list-group-item d-flex justify-content-between align-items-center gap-3">
+                                        <div class="flex-grow-1">
+                                            <div class="fw-medium">@role.RoleName</div>
+                                            <small class="text-muted d-block">@role.AssignedUserCount user@(role.AssignedUserCount == 1 ? string.Empty : "s")</small>
+                                            @if (role.AssignedProjects.Any())
+                                            {
+                                                <div class="d-flex flex-wrap gap-2 mt-2">
+                                                    @foreach (var project in role.AssignedProjects)
+                                                    {
+                                                        <form asp-action="RemoveProjectFromRole" method="post" class="d-inline">
+                                                            @Html.AntiForgeryToken()
+                                                            <input type="hidden" name="projectId" value="@project.Id" />
+                                                            <input type="hidden" name="roleId" value="@role.RoleId" />
+                                                            <button type="submit" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1">
+                                                                <span>@project.Name</span>
+                                                                <i class="bi bi-x-lg"></i>
+                                                            </button>
+                                                        </form>
+                                                    }
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <div class="text-muted small mt-2">No projects assigned</div>
+                                            }
+                                        </div>
+                                        <div class="btn-group" role="group">
+                                            <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="modal"
+                                                    data-bs-target="#renameRoleModal" data-role-id="@role.RoleId"
+                                                    data-role-name="@role.RoleName">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="modal"
+                                                    data-bs-target="#assignProjectModal" data-role-id="@role.RoleId"
+                                                    data-role-name="@role.RoleName">
+                                                <i class="bi bi-kanban"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger" type="button" data-bs-toggle="modal"
+                                                    data-bs-target="#deleteRoleModal" data-role-id="@role.RoleId"
+                                                    data-role-name="@role.RoleName">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </li>
+                                }
+                            </ul>
+                        </div>
                     }
                 </div>
             </div>
