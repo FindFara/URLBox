@@ -13,8 +13,6 @@ namespace URLBox.Application.ViewModel
     {
         public int TotalUrls { get; set; }
 
-        public int PublicUrls { get; set; }
-
         public List<RoleUrlCountViewModel> UrlsPerRole { get; set; } = new();
     }
 }
