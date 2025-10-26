@@ -16,7 +16,6 @@ public static class ConfigureServices
     {
         services.AddScoped<IUrlRepository, UrlRepository>();
         services.AddScoped<IProjectRepository, ProjectRepository>();
-        services.AddScoped<ITeamRepository, TeamRepository>();
 
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseSqlServer(configuration.GetConnectionString("URLBoxConnection")));

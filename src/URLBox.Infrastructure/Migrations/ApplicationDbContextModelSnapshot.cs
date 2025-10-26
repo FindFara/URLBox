@@ -232,31 +232,9 @@ namespace URLBox.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("TeamsId")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
-
-                    b.HasIndex("TeamsId");
 
                     b.ToTable("Projects");
-                });
-
-            modelBuilder.Entity("URLBox.Domain.Entities.Team", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Teams");
                 });
 
             modelBuilder.Entity("URLBox.Domain.Entities.Url", b =>
@@ -280,18 +258,43 @@ namespace URLBox.Infrastructure.Migrations
                     b.Property<bool>("IsPublic")
                         .HasColumnType("bit");
 
-                    b.Property<int>("ProjectId")
-                        .HasColumnType("int");
-
                     b.Property<string>("UrlValue")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ProjectId");
-
                     b.ToTable("Urls");
+                });
+
+            modelBuilder.Entity("ProjectRole", b =>
+                {
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RoleId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("ProjectId", "RoleId");
+
+                    b.HasIndex("RoleId");
+
+                    b.ToTable("ProjectRole");
+                });
+
+            modelBuilder.Entity("ProjectUrl", b =>
+                {
+                    b.Property<int>("ProjectId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UrlId")
+                        .HasColumnType("int");
+
+                    b.HasKey("ProjectId", "UrlId");
+
+                    b.HasIndex("UrlId");
+
+                    b.ToTable("ProjectUrl");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -345,34 +348,49 @@ namespace URLBox.Infrastructure.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("URLBox.Domain.Entities.Project", b =>
+            modelBuilder.Entity("ProjectRole", b =>
                 {
-                    b.HasOne("URLBox.Domain.Entities.Team", "Teams")
-                        .WithMany("Projects")
-                        .HasForeignKey("TeamsId")
+                    b.HasOne("URLBox.Domain.Entities.ApplicationRole", null)
+                        .WithMany()
+                        .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Teams");
+                    b.HasOne("URLBox.Domain.Entities.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
-            modelBuilder.Entity("URLBox.Domain.Entities.Url", b =>
+            modelBuilder.Entity("ProjectUrl", b =>
                 {
-                    b.HasOne("URLBox.Domain.Entities.Project", "Project")
-                        .WithMany("Urls")
+                    b.HasOne("URLBox.Domain.Entities.Project", null)
+                        .WithMany()
                         .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Project");
+                    b.HasOne("URLBox.Domain.Entities.Url", null)
+                        .WithMany()
+                        .HasForeignKey("UrlId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("URLBox.Domain.Entities.ApplicationRole", b =>
+                {
+                    b.Navigation("Projects");
                 });
 
             modelBuilder.Entity("URLBox.Domain.Entities.Project", b =>
                 {
+                    b.Navigation("Roles");
+
                     b.Navigation("Urls");
                 });
 
-            modelBuilder.Entity("URLBox.Domain.Entities.Team", b =>
+            modelBuilder.Entity("URLBox.Domain.Entities.Url", b =>
                 {
                     b.Navigation("Projects");
                 });
