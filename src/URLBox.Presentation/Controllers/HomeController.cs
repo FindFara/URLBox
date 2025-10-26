@@ -165,7 +165,7 @@ namespace URLBox.Presentation.Controllers
                 ? null
                 : accessibleProjects.Select(p => p.Name).ToList();
 
-            var urls = (await _urlService.GetUrlsAsync(allowedProjects, access.UserId, includeOnlyPublic, canManageAllUrls)).ToList();
+            var urls = (await _urlService.GetUrlsAsync(allowedProjects, access.UserId, canManageAllUrls)).ToList();
 
             List<ProjectViewModel> projects;
             if (access.IsAdmin)
