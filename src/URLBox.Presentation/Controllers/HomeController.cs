@@ -112,19 +112,6 @@ namespace URLBox.Presentation.Controllers
             return RedirectToAction("Index");
         }
 
-        [Authorize(Roles = "Administrator")]
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> AddProject(string projectName)
-        {
-            if (!string.IsNullOrWhiteSpace(projectName))
-            {
-                await _projectService.AddProjectAsync(projectName.Trim());
-            }
-
-            return RedirectToAction("Index");
-        }
-
         [Authorize]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -207,16 +194,16 @@ namespace URLBox.Presentation.Controllers
                 projects = accessibleProjects.ToList();
             }
 
-            var manageableProjects = isPublicPage
+            var assignableProjects = isPublicPage
                 ? Enumerable.Empty<ProjectViewModel>()
                 : (access.IsAdmin ? allProjects : accessibleProjects);
 
             ViewBag.Projects = projects;
-            ViewBag.ManageableProjects = manageableProjects;
-            var hasManageableProjects = manageableProjects.Any();
+            ViewBag.AssignableProjects = assignableProjects;
+            var hasAssignableProjects = assignableProjects.Any();
             ViewBag.CanManageUrls = !isPublicPage
                 && access.IsAuthenticated
-                && (access.IsAdmin || (access.IsManager && hasManageableProjects));
+                && (access.IsAdmin || (access.IsManager && hasAssignableProjects));
 
             var statusMessage = TempData[StatusMessageKey] as string;
             if (!string.IsNullOrEmpty(statusMessage))

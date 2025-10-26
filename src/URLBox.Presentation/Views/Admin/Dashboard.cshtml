@@ -257,6 +257,80 @@
             </div>
         </div>
     </div>
+
+    <div class="row g-4 mt-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-transparent py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <h2 class="h5 mb-0">Projects</h2>
+                    <span class="badge text-bg-secondary">@Model.Projects.Count</span>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <h3 class="h6">Add a new project</h3>
+                        <form asp-action="CreateProject" method="post" class="row g-2">
+                            @Html.AntiForgeryToken()
+                            <div class="col-12 col-md-8 col-lg-9">
+                                <label class="visually-hidden" for="newProjectName">Project name</label>
+                                <input id="newProjectName" name="projectName" class="form-control" placeholder="Enter project name" required />
+                            </div>
+                            <div class="col-12 col-md-4 col-lg-3 d-grid">
+                                <button type="submit" class="btn btn-primary">Add project</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <h3 class="h6">Existing projects</h3>
+                    @if (Model.Projects.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table align-middle">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Project</th>
+                                        <th scope="col" class="text-end">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var project in Model.Projects)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <form asp-action="UpdateProject" method="post" class="row g-2 align-items-center">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="projectId" value="@project.Id" />
+                                                    <div class="col-12 col-md-8 col-lg-9">
+                                                        <label class="visually-hidden" for="projectName_@project.Id">Project name</label>
+                                                        <input id="projectName_@project.Id" name="projectName" value="@project.Name" class="form-control" required />
+                                                    </div>
+                                                    <div class="col-12 col-md-4 col-lg-3 d-grid">
+                                                        <button type="submit" class="btn btn-outline-primary">Save</button>
+                                                    </div>
+                                                </form>
+                                            </td>
+                                            <td class="text-end">
+                                                <form asp-action="DeleteProject" method="post" class="d-inline" onsubmit="return confirm('Delete this project? This cannot be undone.');">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="projectId" value="@project.Id" />
+                                                    <button type="submit" class="btn btn-outline-danger">Delete</button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info mb-0" role="alert">
+                            No projects have been created yet.
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
 </section>
 
 <!-- Create user modal -->
