@@ -12,7 +12,7 @@ using URLBox.Infrastructure.Persistance;
 namespace URLBox.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251026063823_init")]
+    [Migration("20251026083606_init")]
     partial class init
     {
         /// <inheritdoc />

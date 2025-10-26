@@ -37,6 +37,7 @@ namespace URLBox.Presentation.Controllers
             _userManager = userManager;
         }
 
+        [AllowAnonymous]
         public Task<IActionResult> Index()
         {
             return RenderIndexAsync();
@@ -178,6 +179,7 @@ namespace URLBox.Presentation.Controllers
 
             ViewBag.Projects = projects;
             ViewBag.ManageableProjects = manageableProjects;
+            ViewBag.assignableProjects = accessibleProjects.ToList();
             var hasManageableProjects = manageableProjects.Any();
             ViewBag.CanManageUrls = access.IsAuthenticated
                 && (access.IsAdmin || (access.IsManager && hasManageableProjects));
