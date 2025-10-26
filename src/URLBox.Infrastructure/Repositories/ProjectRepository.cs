@@ -127,4 +127,51 @@ public class ProjectRepository : IProjectRepository
             .Where(p => !excludingId.HasValue || p.Id != excludingId.Value)
             .AnyAsync(p => p.Name.ToUpper() == normalized);
     }
+
+    public async Task AssignRoleAsync(int projectId, string roleId)
+    {
+        var project = await _context.Projects
+            .Include(p => p.Roles)
+            .FirstOrDefaultAsync(p => p.Id == projectId);
+
+        if (project is null)
+        {
+            throw new InvalidOperationException($"Project with ID {projectId} was not found.");
+        }
+
+        var role = await _context.Roles.FirstOrDefaultAsync(r => r.Id == roleId);
+        if (role is null)
+        {
+            throw new InvalidOperationException($"Role with ID {roleId} was not found.");
+        }
+
+        if (project.Roles.Any(r => string.Equals(r.Id, roleId, StringComparison.Ordinal)))
+        {
+            return;
+        }
+
+        project.Roles.Add(role);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task RemoveRoleAsync(int projectId, string roleId)
+    {
+        var project = await _context.Projects
+            .Include(p => p.Roles)
+            .FirstOrDefaultAsync(p => p.Id == projectId);
+
+        if (project is null)
+        {
+            throw new InvalidOperationException($"Project with ID {projectId} was not found.");
+        }
+
+        var role = project.Roles.FirstOrDefault(r => string.Equals(r.Id, roleId, StringComparison.Ordinal));
+        if (role is null)
+        {
+            return;
+        }
+
+        project.Roles.Remove(role);
+        await _context.SaveChangesAsync();
+    }
 }
