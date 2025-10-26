@@ -1,6 +1,3 @@
-using System;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,8 +14,6 @@ namespace URLBox.Infrastructure.Seed
             AppRoles.Administrator,
             AppRoles.Manager,
             AppRoles.Viewer,
-            "DirectDebit",
-            "AsaPay"
         };
 
         public static async Task SeedAsync(IServiceProvider services, IConfiguration configuration)
