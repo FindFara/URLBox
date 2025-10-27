@@ -1,6 +1,6 @@
 # URLBox
 
-**URLBox** is a modern .NET 7 web application that helps teams securely store, organize, and share important URLs across projects and environments.  
+**URLBox** is a modern .NET 8 web application that helps teams securely store, organize, and share important URLs across projects and environments.  
 It provides authentication, team-based permissions, and a clean responsive interface — making link management effortless for development teams and organizations.
 
 ---
