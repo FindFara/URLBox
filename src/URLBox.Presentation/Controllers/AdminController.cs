@@ -39,9 +39,7 @@ namespace URLBox.Presentation.Controllers
         [HttpGet]
         public async Task<IActionResult> Dashboard(string? statusMessage = null)
         {
-            var users = await _userManager.Users
-                .OrderBy(u => u.UserName)
-                .ToListAsync();
+            var totalUsers = await _userManager.Users.CountAsync();
 
             var roleEntities = await _roleManager.Roles
                 .Include(r => r.Projects)
@@ -56,24 +54,16 @@ namespace URLBox.Presentation.Controllers
 
             var roleUsage = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
-            foreach (var user in users)
+            foreach (var role in roleEntities)
             {
-                var roles = await _userManager.GetRolesAsync(user);
-                model.Users.Add(new UserRoleViewModel
+                var roleName = role.Name ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(roleName))
                 {
-                    UserId = user.Id,
-                    UserName = user.UserName ?? user.Email ?? "(no name)",
-                    Email = user.Email ?? string.Empty,
-                    Roles = roles.OrderBy(r => r).ToList()
-                });
-
-                foreach (var role in roles)
-                {
-                    if (!roleUsage.TryAdd(role, 1))
-                    {
-                        roleUsage[role]++;
-                    }
+                    continue;
                 }
+
+                var usersInRole = await _userManager.GetUsersInRoleAsync(roleName);
+                roleUsage[roleName] = usersInRole.Count;
             }
 
             foreach (var role in roleEntities)
@@ -101,12 +91,25 @@ namespace URLBox.Presentation.Controllers
             var projects = (await _projectService.GetProjectsAsync())
                 .OrderBy(p => p.Name, StringComparer.OrdinalIgnoreCase)
                 .ToList();
-            model.TotalUsers = model.Users.Count;
+            model.TotalUsers = totalUsers;
             model.TotalRoles = model.Roles.Count;
             model.UrlStatistics = urlStats;
             model.Projects = projects;
 
             return View(model);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> UserManager(string? statusMessage = null, int userPage = 1, int userPageSize = 10)
+        {
+            var model = await BuildUserManagerModel(statusMessage, userPage, userPageSize);
+            return View(model);
+        }
+
+        [HttpGet]
+        public Task<IActionResult> Users(string? statusMessage = null, int userPage = 1, int userPageSize = 10)
+        {
+            return UserManager(statusMessage, userPage, userPageSize);
         }
 
         [HttpPost]
@@ -282,28 +285,28 @@ namespace URLBox.Presentation.Controllers
             var user = await _userManager.FindByIdAsync(userId);
             if (user is null)
             {
-                return RedirectToAction(nameof(Dashboard), new { statusMessage = "User not found." });
+                return RedirectToAction(nameof(UserManager), new { statusMessage = "User not found." });
             }
 
             if (!await _roleManager.RoleExistsAsync(roleName))
             {
-                return RedirectToAction(nameof(Dashboard), new { statusMessage = "Role not found." });
+                return RedirectToAction(nameof(UserManager), new { statusMessage = "Role not found." });
             }
 
             if (await _userManager.IsInRoleAsync(user, roleName))
             {
-                return RedirectToAction(nameof(Dashboard), new { statusMessage = $"User already has role '{roleName}'." });
+                return RedirectToAction(nameof(UserManager), new { statusMessage = $"User already has role '{roleName}'." });
             }
 
             var result = await _userManager.AddToRoleAsync(user, roleName);
             if (!result.Succeeded)
             {
                 var error = string.Join(" ", result.Errors.Select(e => e.Description));
-                return RedirectToAction(nameof(Dashboard), new { statusMessage = error });
+                return RedirectToAction(nameof(UserManager), new { statusMessage = error });
             }
 
             _logger.LogInformation("Role '{RoleName}' assigned to user '{UserName}'", roleName, user.UserName);
-            return RedirectToAction(nameof(Dashboard), new { statusMessage = $"Assigned '{roleName}' to {user.UserName}." });
+            return RedirectToAction(nameof(UserManager), new { statusMessage = $"Assigned '{roleName}' to {user.UserName}." });
         }
 
         [HttpPost]
@@ -313,23 +316,23 @@ namespace URLBox.Presentation.Controllers
             var user = await _userManager.FindByIdAsync(userId);
             if (user is null)
             {
-                return RedirectToAction(nameof(Dashboard), new { statusMessage = "User not found." });
+                return RedirectToAction(nameof(UserManager), new { statusMessage = "User not found." });
             }
 
             if (!await _userManager.IsInRoleAsync(user, roleName))
             {
-                return RedirectToAction(nameof(Dashboard), new { statusMessage = $"User is not in role '{roleName}'." });
+                return RedirectToAction(nameof(UserManager), new { statusMessage = $"User is not in role '{roleName}'." });
             }
 
             var result = await _userManager.RemoveFromRoleAsync(user, roleName);
             if (!result.Succeeded)
             {
                 var error = string.Join(" ", result.Errors.Select(e => e.Description));
-                return RedirectToAction(nameof(Dashboard), new { statusMessage = error });
+                return RedirectToAction(nameof(UserManager), new { statusMessage = error });
             }
 
             _logger.LogInformation("Role '{RoleName}' removed from user '{UserName}'", roleName, user.UserName);
-            return RedirectToAction(nameof(Dashboard), new { statusMessage = $"Removed '{roleName}' from {user.UserName}." });
+            return RedirectToAction(nameof(UserManager), new { statusMessage = $"Removed '{roleName}' from {user.UserName}." });
         }
 
         [HttpPost]
@@ -338,7 +341,7 @@ namespace URLBox.Presentation.Controllers
         {
             if (!ModelState.IsValid)
             {
-                return RedirectToAction(nameof(Dashboard), new { statusMessage = CollectModelErrors() });
+                return RedirectToAction(nameof(UserManager), new { statusMessage = CollectModelErrors() });
             }
 
             var trimmedEmail = string.IsNullOrWhiteSpace(input.Email)
@@ -355,11 +358,11 @@ namespace URLBox.Presentation.Controllers
             if (!result.Succeeded)
             {
                 var error = string.Join(" ", result.Errors.Select(e => e.Description));
-                return RedirectToAction(nameof(Dashboard), new { statusMessage = error });
+                return RedirectToAction(nameof(UserManager), new { statusMessage = error });
             }
 
             _logger.LogInformation("User '{UserName}' created by {Admin}", user.UserName, User.Identity?.Name);
-            return RedirectToAction(nameof(Dashboard), new { statusMessage = $"User '{user.UserName}' created." });
+            return RedirectToAction(nameof(UserManager), new { statusMessage = $"User '{user.UserName}' created." });
         }
 
         [HttpPost]
@@ -368,13 +371,13 @@ namespace URLBox.Presentation.Controllers
         {
             if (!ModelState.IsValid)
             {
-                return RedirectToAction(nameof(Dashboard), new { statusMessage = CollectModelErrors() });
+                return RedirectToAction(nameof(UserManager), new { statusMessage = CollectModelErrors() });
             }
 
             var user = await _userManager.FindByIdAsync(input.UserId);
             if (user is null)
             {
-                return RedirectToAction(nameof(Dashboard), new { statusMessage = "User not found." });
+                return RedirectToAction(nameof(UserManager), new { statusMessage = "User not found." });
             }
 
             user.UserName = input.UserName.Trim();
@@ -386,11 +389,28 @@ namespace URLBox.Presentation.Controllers
             if (!result.Succeeded)
             {
                 var error = string.Join(" ", result.Errors.Select(e => e.Description));
-                return RedirectToAction(nameof(Dashboard), new { statusMessage = error });
+                return RedirectToAction(nameof(UserManager), new { statusMessage = error });
+            }
+
+            var newPassword = string.IsNullOrWhiteSpace(input.NewPassword) ? null : input.NewPassword;
+            if (newPassword is not null)
+            {
+                if (string.IsNullOrWhiteSpace(input.ConfirmPassword))
+                {
+                    return RedirectToAction(nameof(UserManager), new { statusMessage = "Password confirmation is required." });
+                }
+
+                var resetToken = await _userManager.GeneratePasswordResetTokenAsync(user);
+                var resetResult = await _userManager.ResetPasswordAsync(user, resetToken, newPassword);
+                if (!resetResult.Succeeded)
+                {
+                    var error = string.Join(" ", resetResult.Errors.Select(e => e.Description));
+                    return RedirectToAction(nameof(UserManager), new { statusMessage = error });
+                }
             }
 
             _logger.LogInformation("User '{UserName}' updated by {Admin}", user.UserName, User.Identity?.Name);
-            return RedirectToAction(nameof(Dashboard), new { statusMessage = $"User '{user.UserName}' updated." });
+            return RedirectToAction(nameof(UserManager), new { statusMessage = $"User '{user.UserName}' updated." });
         }
 
         [HttpPost]
@@ -399,30 +419,30 @@ namespace URLBox.Presentation.Controllers
         {
             if (string.IsNullOrWhiteSpace(userId))
             {
-                return RedirectToAction(nameof(Dashboard), new { statusMessage = "User identifier is required." });
+                return RedirectToAction(nameof(UserManager), new { statusMessage = "User identifier is required." });
             }
 
             var user = await _userManager.FindByIdAsync(userId);
             if (user is null)
             {
-                return RedirectToAction(nameof(Dashboard), new { statusMessage = "User not found." });
+                return RedirectToAction(nameof(UserManager), new { statusMessage = "User not found." });
             }
 
             var currentUserId = _userManager.GetUserId(User);
             if (!string.IsNullOrEmpty(currentUserId) && string.Equals(user.Id, currentUserId, StringComparison.Ordinal))
             {
-                return RedirectToAction(nameof(Dashboard), new { statusMessage = "You cannot delete the account you are currently using." });
+                return RedirectToAction(nameof(UserManager), new { statusMessage = "You cannot delete the account you are currently using." });
             }
 
             var result = await _userManager.DeleteAsync(user);
             if (!result.Succeeded)
             {
                 var error = string.Join(" ", result.Errors.Select(e => e.Description));
-                return RedirectToAction(nameof(Dashboard), new { statusMessage = error });
+                return RedirectToAction(nameof(UserManager), new { statusMessage = error });
             }
 
             _logger.LogInformation("User '{UserName}' deleted by {Admin}", user.UserName, User.Identity?.Name);
-            return RedirectToAction(nameof(Dashboard), new { statusMessage = $"User '{user.UserName}' deleted." });
+            return RedirectToAction(nameof(UserManager), new { statusMessage = $"User '{user.UserName}' deleted." });
         }
 
         [HttpPost]
@@ -504,6 +524,61 @@ namespace URLBox.Presentation.Controllers
                 .ToArray();
 
             return errors.Length == 0 ? "Please review the submitted values." : string.Join(" ", errors);
+        }
+
+        private async Task<AdminUserManagerViewModel> BuildUserManagerModel(string? statusMessage, int userPage, int userPageSize)
+        {
+            if (userPageSize <= 0)
+            {
+                userPageSize = 10;
+            }
+            userPageSize = Math.Min(userPageSize, 50);
+
+            var totalUsers = await _userManager.Users.CountAsync();
+            var totalPages = Math.Max(1, (int)Math.Ceiling(totalUsers / (double)userPageSize));
+            userPage = Math.Clamp(userPage, 1, totalPages);
+
+            var users = await _userManager.Users
+                .OrderBy(u => u.UserName)
+                .Skip((userPage - 1) * userPageSize)
+                .Take(userPageSize)
+                .ToListAsync();
+
+            var model = new AdminUserManagerViewModel
+            {
+                StatusMessage = statusMessage,
+                UserPage = userPage,
+                UserPageSize = userPageSize,
+                UserTotalCount = totalUsers,
+                UserTotalPages = totalPages
+            };
+
+            foreach (var user in users)
+            {
+                var roles = await _userManager.GetRolesAsync(user);
+                model.Users.Add(new UserRoleViewModel
+                {
+                    UserId = user.Id,
+                    UserName = user.UserName ?? user.Email ?? "(no name)",
+                    Email = user.Email ?? string.Empty,
+                    Roles = roles.OrderBy(r => r).ToList()
+                });
+            }
+
+            var rolesList = await _roleManager.Roles
+                .OrderBy(r => r.Name)
+                .ToListAsync();
+
+            model.Roles = rolesList
+                .Where(r => !string.IsNullOrWhiteSpace(r.Name))
+                .Select(r => new RoleSummaryViewModel
+                {
+                    RoleId = r.Id,
+                    RoleName = r.Name ?? string.Empty
+                })
+                .ToList();
+
+            return model;
         }
     }
 }

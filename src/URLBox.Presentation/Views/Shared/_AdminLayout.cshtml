@@ -32,12 +32,12 @@
     </div>
 
     <aside id="leftSidebar" class="d-none d-lg-flex flex-column align-items-center gap-3">
-        <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary btn-icon" data-bs-placement="right" title="Dashboard">
+        <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary btn-icon" data-bs-placement="right" title="Home">
             <i class="bi bi-house"></i>
         </a>
-        <a asp-controller="Admin" asp-action="Dashboard" class="btn btn-warning btn-icon" data-bs-placement="right" title="Admin dashboard">
+        <button id="adminToggleDesktop" type="button" class="btn btn-warning btn-icon" data-bs-placement="right" >
             <i class="bi bi-speedometer"></i>
-        </a>
+        </button>
         @if (isAuthenticated)
         {
             <form asp-controller="Account" asp-action="Logout" method="post" class="m-0">
@@ -65,7 +65,10 @@
                 <i class="bi bi-house me-1"></i> Dashboard
             </a>
             <a asp-controller="Admin" asp-action="Dashboard" class="btn btn-warning w-100" data-bs-dismiss="offcanvas">
-                <i class="bi bi-speedometer me-1"></i> Admin dashboard
+                <i class="bi bi-speedometer me-1"></i> Dashboard
+            </a>
+            <a asp-controller="Admin" asp-action="UserManager" class="btn btn-outline-warning w-100" data-bs-dismiss="offcanvas">
+                <i class="bi bi-people me-1"></i> User manager
             </a>
             @if (isAuthenticated)
             {
@@ -83,6 +86,15 @@
                 <i class="bi bi-github me-1"></i> GitHub
             </a>
         </div>
+    </div>
+
+    <div id="adminSidebar" class="flex-column gap-2">
+        <a asp-controller="Admin" asp-action="Dashboard" class="btn btn-outline-primary btn-sm">
+            <i class="bi bi-speedometer2 me-1"></i> Dashboard
+        </a>
+        <a asp-controller="Admin" asp-action="UserManager" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-people me-1"></i> User manager
+        </a>
     </div>
 
     <main class="container-fluid py-4">
@@ -128,6 +140,31 @@
             if (ham && offcanvasEl) {
                 offcanvasEl.addEventListener('show.bs.offcanvas', () => ham.classList.add('invisible'));
                 offcanvasEl.addEventListener('hidden.bs.offcanvas', () => ham.classList.remove('invisible'));
+            }
+        })();
+
+        (function () {
+            const adminBtn = document.getElementById('adminToggleDesktop');
+            const adminSidebar = document.getElementById('adminSidebar');
+            if (adminBtn && adminSidebar) {
+                adminBtn.addEventListener('mouseenter', () => {
+                    const rect = adminBtn.getBoundingClientRect();
+                    adminSidebar.style.top = rect.top + 'px';
+                    adminSidebar.style.left = rect.right + 'px';
+                    adminSidebar.classList.add('show');
+                });
+                adminBtn.addEventListener('mouseleave', () => {
+                    setTimeout(() => {
+                        if (!adminSidebar.matches(':hover') && !adminBtn.matches(':hover')) {
+                            adminSidebar.classList.remove('show');
+                        }
+                    }, 100);
+                });
+                adminSidebar.addEventListener('mouseleave', () => {
+                    if (!adminBtn.matches(':hover')) {
+                        adminSidebar.classList.remove('show');
+                    }
+                });
             }
         })();
     </script>

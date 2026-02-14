@@ -49,6 +49,14 @@ namespace URLBox.Presentation.Models
         [EmailAddress]
         [StringLength(256)]
         public string? Email { get; set; }
+
+        [DataType(DataType.Password)]
+        [StringLength(100, MinimumLength = 6)]
+        public string? NewPassword { get; set; }
+
+        [DataType(DataType.Password)]
+        [Compare(nameof(NewPassword))]
+        public string? ConfirmPassword { get; set; }
     }
 
     public class UpdateRoleInputModel

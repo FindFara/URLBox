@@ -29,23 +29,8 @@
     var hasRoleChartData = roleLabelList.Any();
 }
 
-<section class="py-4">
-    <div class="d-flex flex-column flex-xl-row gap-3 mb-4 align-items-start">
-        <div>
-            <h1 class="h3 mb-1">Administration</h1>
-            <p class="text-muted mb-0">Manage team members and roles that control access to protected URLs.</p>
-        </div>
-        <div class="d-flex flex-wrap gap-2 align-self-start">
-            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#createUserModal">
-                <i class="bi bi-person-plus me-1"></i>
-                New user
-            </button>
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createRoleModal">
-                <i class="bi bi-shield-plus me-1"></i>
-                New role
-            </button>
-        </div>
-    </div>
+<section id="adminDashboardTop" class="py-4">
+
 
     @if (!string.IsNullOrEmpty(Model.StatusMessage))
     {
@@ -111,104 +96,21 @@
     </div>
 
     <div class="row g-4">
-        <div class="col-12 col-xl-7">
-            <div class="card shadow-sm h-100">
-                <div class="card-header bg-transparent py-3">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h2 class="h5 mb-0">Users</h2>
-                        <span class="badge text-bg-secondary">@Model.Users.Count</span>
-                    </div>
-                </div>
-                <div class="card-body">
-                    @if (Model.Users.Count == 0)
-                    {
-                        <p class="text-muted mb-0">No users have been created yet.</p>
-                    }
-                    else
-                    {
-                        <div class="table-responsive admin-scroll-section">
-                            <table class="table align-middle mb-0">
-                                <thead>
-                                    <tr>
-                                        <th scope="col">Name</th>
-                                        <th scope="col">Email</th>
-                                        <th scope="col">Roles</th>
-                                        <th scope="col" class="text-end">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var user in Model.Users)
-                                    {
-                                        <tr>
-                                            <td class="fw-medium">@user.UserName</td>
-                                            <td>
-                                                @if (string.IsNullOrWhiteSpace(user.Email))
-                                                {
-                                                    <span class="text-muted">No email</span>
-                                                }
-                                                else
-                                                {
-                                                    <span>@user.Email</span>
-                                                }
-                                            </td>
-                                            <td>
-                                                @if (user.Roles.Any())
-                                                {
-                                                    <div class="d-flex flex-wrap gap-2">
-                                                        @foreach (var role in user.Roles)
-                                                        {
-                                                            <form asp-action="RemoveRole" method="post" class="d-inline">
-                                                                @Html.AntiForgeryToken()
-                                                                <input type="hidden" name="userId" value="@user.UserId" />
-                                                                <input type="hidden" name="roleName" value="@role" />
-                                                                <button type="submit" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1">
-                                                                    <span>@role</span>
-                                                                    <i class="bi bi-x-lg"></i>
-                                                                </button>
-                                                            </form>
-                                                        }
-                                                    </div>
-                                                }
-                                                else
-                                                {
-                                                    <span class="text-muted">No roles assigned</span>
-                                                }
-                                            </td>
-                                            <td class="text-end">
-                                                <div class="btn-group" role="group">
-                                                    <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="modal"
-                                                            data-bs-target="#editUserModal" data-user-id="@user.UserId"
-                                                            data-user-name="@user.UserName" data-user-email="@user.Email">
-                                                        <i class="bi bi-pencil"></i>
-                                                    </button>
-                                                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="modal"
-                                                            data-bs-target="#assignRoleModal" data-user-id="@user.UserId"
-                                                            data-user-name="@user.UserName">
-                                                        <i class="bi bi-person-badge"></i>
-                                                    </button>
-                                                    <button class="btn btn-sm btn-outline-danger" type="button" data-bs-toggle="modal"
-                                                            data-bs-target="#deleteUserModal" data-user-id="@user.UserId"
-                                                            data-user-name="@user.UserName">
-                                                        <i class="bi bi-trash"></i>
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
-                    }
-                </div>
-            </div>
-        </div>
-        <div class="col-12 col-xl-5">
+        <div class="col-12">
             <div class="card shadow-sm h-100">
                 <div class="card-header bg-transparent py-3">
                     <div class="d-flex justify-content-between align-items-center">
                         <h2 class="h5 mb-0">Roles</h2>
                         <span class="badge text-bg-secondary">@Model.Roles.Count</span>
                     </div>
+
+                <div class="card-body">
+                     <div class="d-flex flex-wrap gap-2 align-self-start">
+                         <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createRoleModal">
+                             <i class="bi bi-shield-plus me-1"></i>
+                             New role
+                         </button>
+                     </div>
                 </div>
                 <div class="card-body">
                     @if (Model.Roles.Count == 0)
@@ -349,95 +251,6 @@
     </div>
 </section>
 
-<!-- Create user modal -->
-<div class="modal fade" id="createUserModal" tabindex="-1" aria-labelledby="createUserLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="createUserLabel">Create user</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form asp-action="CreateUser" method="post" id="createUserForm">
-                    @Html.AntiForgeryToken()
-                    <div class="mb-3">
-                        <label for="createUserName" class="form-label">User name</label>
-                        <input id="createUserName" name="UserName" class="form-control" required maxlength="256" />
-                    </div>
-                    <div class="mb-3">
-                        <label for="createUserEmail" class="form-label">Email <span class="text-muted">(optional)</span></label>
-                        <input id="createUserEmail" name="Email" type="email" class="form-control" maxlength="256" />
-                    </div>
-                    <div class="row">
-                        <div class="col-12 col-md-6">
-                            <div class="mb-3">
-                                <label for="createUserPassword" class="form-label">Password</label>
-                                <input id="createUserPassword" name="Password" type="password" class="form-control" required minlength="6" maxlength="100" />
-                            </div>
-                        </div>
-                        <div class="col-12 col-md-6">
-                            <div class="mb-3">
-                                <label for="createUserConfirm" class="form-label">Confirm password</label>
-                                <input id="createUserConfirm" name="ConfirmPassword" type="password" class="form-control" required minlength="6" maxlength="100" />
-                            </div>
-                        </div>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100">Create user</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Edit user modal -->
-<div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="editUserLabel">Edit user</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form asp-action="UpdateUser" method="post" id="editUserForm">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="UserId" id="editUserId" />
-                    <div class="mb-3">
-                        <label for="editUserName" class="form-label">User name</label>
-                        <input id="editUserName" name="UserName" class="form-control" required maxlength="256" />
-                    </div>
-                    <div class="mb-3">
-                        <label for="editUserEmail" class="form-label">Email <span class="text-muted">(optional)</span></label>
-                        <input id="editUserEmail" name="Email" type="email" class="form-control" maxlength="256" />
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100">Save changes</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Delete user modal -->
-<div class="modal fade" id="deleteUserModal" tabindex="-1" aria-labelledby="deleteUserLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="deleteUserLabel">Delete user</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form asp-action="DeleteUser" method="post" id="deleteUserForm">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="userId" id="deleteUserId" />
-                    <p class="mb-3">
-                        Are you sure you want to remove <strong id="deleteUserName"></strong>?
-                    </p>
-                    <button type="submit" class="btn btn-danger w-100">Delete user</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
 <!-- Create role modal -->
 <div class="modal fade" id="createRoleModal" tabindex="-1" aria-labelledby="createRoleLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -499,39 +312,6 @@
                         This will remove the <strong id="deleteRoleName"></strong> role and unassign it from all users.
                     </p>
                     <button type="submit" class="btn btn-danger w-100">Delete role</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Assign role modal -->
-<div class="modal fade" id="assignRoleModal" tabindex="-1" aria-labelledby="assignRoleLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="assignRoleLabel">Assign role</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form asp-action="AssignRole" method="post" id="assignRoleForm">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="userId" id="assignRoleUserId" />
-                    <div class="mb-3">
-                        <label class="form-label">User</label>
-                        <input type="text" class="form-control" id="assignRoleUserName" readonly />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label" for="assignRoleName">Select role</label>
-                        <select class="form-select" id="assignRoleName" name="roleName" required>
-                            <option value="" disabled selected>Choose role...</option>
-                            @foreach (var role in Model.Roles)
-                            {
-                                <option value="@role.RoleName">@role.RoleName</option>
-                            }
-                        </select>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100">Assign role</button>
                 </form>
             </div>
         </div>
@@ -633,26 +413,6 @@
         })();
     </script>
     <script>
-        const assignRoleModal = document.getElementById('assignRoleModal');
-        if (assignRoleModal) {
-            assignRoleModal.addEventListener('show.bs.modal', event => {
-                const button = event.relatedTarget;
-                if (!button) return;
-                const userId = button.getAttribute('data-user-id');
-                const userName = button.getAttribute('data-user-name');
-
-                const userIdInput = document.getElementById('assignRoleUserId');
-                const userNameInput = document.getElementById('assignRoleUserName');
-                const select = document.getElementById('assignRoleName');
-
-                if (userIdInput && userNameInput && select) {
-                    userIdInput.value = userId ?? '';
-                    userNameInput.value = userName ?? '';
-                    select.selectedIndex = 0;
-                }
-            });
-        }
-
         const assignProjectModal = document.getElementById('assignProjectModal');
         if (assignProjectModal) {
             assignProjectModal.addEventListener('show.bs.modal', event => {
@@ -670,34 +430,6 @@
                     roleNameInput.value = roleName ?? '';
                     select.selectedIndex = 0;
                 }
-            });
-        }
-
-        const editUserModal = document.getElementById('editUserModal');
-        if (editUserModal) {
-            editUserModal.addEventListener('show.bs.modal', event => {
-                const button = event.relatedTarget;
-                if (!button) return;
-                const userId = button.getAttribute('data-user-id');
-                const userName = button.getAttribute('data-user-name');
-                const userEmail = button.getAttribute('data-user-email');
-
-                document.getElementById('editUserId').value = userId ?? '';
-                document.getElementById('editUserName').value = userName ?? '';
-                document.getElementById('editUserEmail').value = userEmail ?? '';
-            });
-        }
-
-        const deleteUserModal = document.getElementById('deleteUserModal');
-        if (deleteUserModal) {
-            deleteUserModal.addEventListener('show.bs.modal', event => {
-                const button = event.relatedTarget;
-                if (!button) return;
-                const userId = button.getAttribute('data-user-id');
-                const userName = button.getAttribute('data-user-name');
-
-                document.getElementById('deleteUserId').value = userId ?? '';
-                document.getElementById('deleteUserName').textContent = userName ?? '';
             });
         }
 
