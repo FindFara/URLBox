@@ -1,0 +1,36 @@
+@model IEnumerable<string>
+<div class="modal fade" id="environmentsModal" tabindex="-1" aria-labelledby="environmentsLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+        <div class="modal-header">
+            <h5 id="environmentsLabel" class="modal-title">Team environments</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <p class="text-muted small">Create the columns your team needs. Move an environment's URLs before deleting it.</p>
+            @foreach (var environment in Model)
+            {
+                <div class="d-flex gap-2 mb-3">
+                    <form asp-controller="Home" asp-action="SaveEnvironment" method="post" class="d-flex flex-grow-1 gap-2">
+                        <input type="hidden" name="teamId" value="@ViewBag.TeamId" />
+                        <input type="hidden" name="originalName" value="@environment" />
+                        <input type="hidden" name="returnUrl" value="@(Context.Request.Path + Context.Request.QueryString)" />
+                        <input name="environmentName" value="@environment" class="form-control" required maxlength="100" aria-label="Environment name" />
+                        <button type="submit" class="btn btn-outline-primary">Save</button>
+                    </form>
+                    <form asp-controller="Home" asp-action="DeleteEnvironment" method="post" onsubmit="return confirm('Delete this environment?')">
+                        <input type="hidden" name="teamId" value="@ViewBag.TeamId" />
+                        <input type="hidden" name="environmentName" value="@environment" />
+                        <input type="hidden" name="returnUrl" value="@(Context.Request.Path + Context.Request.QueryString)" />
+                        <button type="submit" class="btn btn-outline-danger">Delete</button>
+                    </form>
+                </div>
+            }
+            <form asp-controller="Home" asp-action="SaveEnvironment" method="post" class="d-flex gap-2 border-top pt-3">
+                <input type="hidden" name="teamId" value="@ViewBag.TeamId" />
+                <input type="hidden" name="returnUrl" value="@(Context.Request.Path + Context.Request.QueryString)" />
+                <input name="environmentName" placeholder="New environment name" class="form-control" required maxlength="100" aria-label="New environment name" />
+                <button type="submit" class="btn btn-primary">Add</button>
+            </form>
+        </div>
+    </div></div>
+</div>

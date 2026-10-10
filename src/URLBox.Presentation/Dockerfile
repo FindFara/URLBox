@@ -1,8 +1,9 @@
 
 # This stage is used when running from VS in fast mode (Default for Debug configuration)
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
-USER $APP_UID
 WORKDIR /app
+RUN mkdir -p /app/App_Data/teams && chown -R $APP_UID /app/App_Data
+USER $APP_UID
 EXPOSE 8080
 EXPOSE 8081
 

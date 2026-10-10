@@ -278,3 +278,61 @@ html[data-bs-theme="dark"] .offcanvas {
         display: none !important;
     }
 }
+
+.login-card { max-width: 440px; }
+
+.team-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 1.25rem;
+}
+
+.team-toolbar-name { max-width: 100%; overflow-wrap: anywhere; }
+.team-toolbar-actions { justify-self: end; flex-wrap: wrap; justify-content: flex-end; }
+
+.environment-nav {
+    background-color: var(--surface);
+    color: var(--bs-body-color);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+
+.environment-nav:hover:not(:disabled) { border-color: var(--bs-primary); color: var(--bs-primary); }
+.environment-columns { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.5rem; }
+.environment-columns > [data-environment-column] { min-width: 0; }
+
+@media (min-width: 768px) {
+    .environment-columns { grid-template-columns: repeat(var(--environment-mobile-columns), minmax(0, 1fr)); }
+}
+
+@media (min-width: 1200px) {
+    .environment-columns { grid-template-columns: repeat(var(--environment-columns), minmax(0, 1fr)); }
+}
+
+@media (max-width: 991.98px) {
+    .team-toolbar { grid-template-columns: minmax(0, 1fr) auto; }
+    .team-toolbar-name { grid-column: 1 / -1; grid-row: 1; justify-self: center; }
+}
+
+@media (max-width: 575.98px) {
+    .team-toolbar { grid-template-columns: minmax(0, 1fr); }
+    .team-toolbar-tags { grid-row: 2; }
+    .team-toolbar-actions { grid-row: 3; }
+}
+
+.project-tag,
+.project-tag:hover,
+.project-tag:focus-visible {
+    background-color: var(--project-color);
+    border-color: var(--project-color);
+    color: var(--project-text);
+}
+
+.project-tag[aria-pressed="true"] {
+    outline: 2px solid var(--project-color);
+    outline-offset: 2px;
+}
+
+.project-tag[aria-pressed="true"]::before { content: "✓ "; }

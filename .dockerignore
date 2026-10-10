@@ -23,6 +23,10 @@
 **/values.dev.yaml
 LICENSE
 README.md
+**/App_Data
+.dotnet-home
+.idea
+.checks-artifacts
 !**/.gitignore
 !.git/HEAD
 !.git/config

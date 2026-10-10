@@ -1,107 +1,51 @@
-using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using URLBox.Domain.Entities;
+using Microsoft.AspNetCore.RateLimiting;
+using URLBox.Domain.Interfaces;
+using URLBox.Presentation.Authentication;
 using URLBox.Presentation.Models;
 
-namespace URLBox.Presentation.Controllers
+namespace URLBox.Presentation.Controllers;
+
+[AllowAnonymous]
+public class AccountController(ITeamStore store) : Controller
 {
-    [AllowAnonymous]
-    public class AccountController : Controller
+    [HttpGet]
+    public IActionResult Login(string? returnUrl = null)
     {
-        private readonly UserManager<ApplicationUser> _userManager;
-        private readonly SignInManager<ApplicationUser> _signInManager;
-        private readonly ILogger<AccountController> _logger;
+        if (User.Identity?.IsAuthenticated == true) return RedirectToAction("Index", "Home");
+        return LoginModal(null, returnUrl);
+    }
 
-        public AccountController(
-            UserManager<ApplicationUser> userManager,
-            SignInManager<ApplicationUser> signInManager,
-            ILogger<AccountController> logger)
-        {
-            _userManager = userManager;
-            _signInManager = signInManager;
-            _logger = logger;
-        }
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [EnableRateLimiting("team-login")]
+    public async Task<IActionResult> Login(LoginViewModel model)
+    {
+        if (!ModelState.IsValid) return LoginModal("Enter your team name and password.", model.ReturnUrl);
+        var team = await store.AuthenticateAsync(model.TeamName, model.Password);
+        if (team is null) return LoginModal("Invalid team name or password.", model.ReturnUrl);
+        await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme,
+            TeamCookieEvents.PrincipalFor(team), new AuthenticationProperties { IsPersistent = true });
+        return !string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl)
+            ? LocalRedirect(model.ReturnUrl) : RedirectToAction("Index", "Home");
+    }
 
-        [HttpGet]
-        public IActionResult Login(string? returnUrl = null)
-        {
-            if (User.Identity?.IsAuthenticated == true)
-            {
-                return RedirectToAction("Index", "Home");
-            }
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Logout()
+    {
+        await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        return RedirectToAction("Index", "Home");
+    }
 
-            return RedirectToLoginModal(message: null, returnUrl);
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl = null)
-        {
-            returnUrl ??= model.ReturnUrl ?? Url.Action("Index", "Home");
-
-            if (!ModelState.IsValid)
-            {
-                return RedirectToLoginModal("Please provide both a username and password.", returnUrl);
-            }
-
-            var user = await _userManager.FindByNameAsync(model.UserName);
-            if (user is null)
-            {
-                _logger.LogWarning("Login attempt failed for unknown user '{UserName}'", model.UserName);
-                return RedirectToLoginModal("Invalid username or password.", returnUrl);
-            }
-
-            var result = await _signInManager.PasswordSignInAsync(user, model.Password, model.RememberMe, lockoutOnFailure: false);
-            if (result.Succeeded)
-            {
-                _logger.LogInformation("User '{UserName}' logged in successfully.", model.UserName);
-                if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
-                {
-                    return Redirect(returnUrl);
-                }
-
-                return RedirectToAction("Index", "Home");
-            }
-
-            if (result.IsLockedOut)
-            {
-                _logger.LogWarning("User '{UserName}' account locked out.", model.UserName);
-                return RedirectToLoginModal("Your account is locked. Please contact the administrator.", returnUrl);
-            }
-
-            _logger.LogWarning("Invalid password for user '{UserName}'.", model.UserName);
-            return RedirectToLoginModal("Invalid username or password.", returnUrl);
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Logout()
-        {
-            if (User.Identity?.IsAuthenticated == true)
-            {
-                await _signInManager.SignOutAsync();
-                _logger.LogInformation("User logged out.");
-            }
-
-            return RedirectToAction("Index", "Home");
-        }
-
-        private IActionResult RedirectToLoginModal(string? message, string? returnUrl)
-        {
-            if (!string.IsNullOrEmpty(message))
-            {
-                TempData["LoginError"] = message;
-            }
-
-            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
-            {
-                TempData["LoginReturnUrl"] = returnUrl;
-            }
-
-            TempData["ShowLoginModal"] = true;
-            return RedirectToAction("Index", "Home");
-        }
+    private IActionResult LoginModal(string? error, string? returnUrl)
+    {
+        TempData["LoginError"] = error;
+        TempData["ShowLoginModal"] = true;
+        if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl)) TempData["LoginReturnUrl"] = returnUrl;
+        return RedirectToAction("Index", "Home");
     }
 }

@@ -366,3 +366,11 @@ FodyWeavers.xsd
 src/URLBox.Presentation/appsettings.*.local.json
 src/URLBox.Presentation/appsettings.Local.json
 
+# Local .NET CLI state and restored package cache
+.dotnet-home/
+
+# Private team YAML files and cookie encryption keys
+**/App_Data/
+.checks-artifacts/
+**/.store.lock
+

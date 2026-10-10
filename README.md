@@ -1,77 +1,62 @@
 # URLBox
 
-**URLBox** is a modern .NET 8 web application that helps teams securely store, organize, and share important URLs across projects and environments.  
-It provides authentication, team-based permissions, and a clean responsive interface — making link management effortless for development teams and organizations.
+A simple .NET 8 app for storing and sharing URLs within teams.
 
----
+- One shared team name and password.
+- A shared teams.yaml file for team information, plus a named YAML file per team for its URLs and projects.
+- Team members manage their own URLs and projects.
+- Administrators manage teams and access any team's URLs.
+- Edit URLs, copy/open links, filter using project tags, and sort URLs in the admin dashboard. Click multiple project tags to include URLs from any selected project; All clears the filter.
+- No SQL Server, Entity Framework, database setup, or migrations.
 
-## 🚀 Features
+## Run
 
-- **Smart URL Management** – Save and categorize URLs by project, environment, and description.  
-- **Team & Project Permissions** – Fine-grained access control using ASP.NET Identity roles and claims.  
-- **Secure Authentication** – Built-in login, registration, and role management.  
-- **Reliable Data Storage** – Entity Framework Core with SQL Server for seamless persistence.  
-- **Elegant Interface** – Bootstrap-powered UI with modals, copy/open actions, and environment grouping.
+Configure the initial admin team in `src/URLBox.Presentation/appsettings.json`, or use environment variables `AdminTeam__Name` and `AdminTeam__Password`.
 
----
+```powershell
+dotnet run --project src/URLBox.Presentation
+```
 
-## ⚙️ Setup
+Open the local address printed by the application. The admin team is created automatically on first startup. Its password is only set at creation; later password changes use Admin > Teams.
 
-1. **Clone the Repository**
-   ```bash
-   git clone https://github.com/FindFara/URLBox.git
-   cd URLBox
-   ```
+## Storage
 
-2. **Configure Database**
-   Edit your `appsettings.json`:
-   ```json
-   "ConnectionStrings": {
-     "DefaultConnection": "Server=.;Database=UrlDatabase;Trusted_Connection=True;"
-   }
-   ```
-   *(Or set it via environment variable for security.)*
+By default, data lives in `src/URLBox.Presentation/App_Data/teams/`:
 
-3. **Apply Migrations**
-   ```bash
-   dotnet ef database update
-   ```
+```text
+teams.yaml     # Team names, password hashes, administrator status and session versions
+admin.yaml     # Admin team projects and URLs
+Profit.yaml    # Profit team projects and URLs
+```
 
-4. **Run the Application**
-   ```bash
-   dotnet run
-   ```
-   Then open [https://localhost:5001](https://localhost:5001) in your browser.
+The URL files do not contain login credentials. Renaming a team also renames its URL file while preserving its links and project assignments. Team names may contain Unicode letters, numbers, spaces, underscores, and hyphens. `teams` and operating-system reserved filenames cannot be team names.
 
----
+Set `Storage:Directory` (environment variable `Storage__Directory`) to choose another folder. Relative paths resolve from the web project's content root. The folder must be writable and outside `wwwroot`. Files are read from disk on each operation, so valid manual YAML changes become visible immediately. Invalid files produce an error and are not silently replaced.
 
-## 💡 Usage
+Writes use a temporary file and atomic replacement. A folder lock prevents concurrent requests or app processes from overwriting each other's edits. Back up the whole folder, including `.keys`, which preserves login cookies across restarts. For Docker, mount a writable volume at `/app/App_Data` or configure a different storage directory.
 
-- **Teams & Projects** – Create teams and organize URLs per project.  
-- **Add URLs** – Include a description, project tag, and environment (Dev, Stage, Prod, etc.).  
-- **Manage Access** – Assign roles (Admin, Manager, Member) to control who can view or modify content.  
+The previous SQL database is no longer accessed or modified. Existing SQL records are not automatically imported into the YAML files.
 
----
+## Sample data
 
-## 🛠 Tech Stack
+With `SampleData:Enabled` set to `true` (the default), the first startup creates:
 
-- **Backend:** ASP.NET Core 7, Entity Framework Core, .NET Identity  
-- **Database:** Microsoft SQL Server  
-- **Frontend:** Bootstrap 5, jQuery, Razor Views  
+- The configured admin team with a URLBox project and repository link.
+- A `Profit` team, shared password `profit1234`, with Documentation and API projects and three sample URLs.
 
----
+Samples are only added when the team folder is empty; subsequent starts preserve edits and deletions. Set `SampleData__Enabled=false` for an empty initial setup. If the admin team is named Profit, the sample team is named Profit Sample instead. A ready-to-use example folder containing `teams.yaml`, `admin.yaml`, and `Profit.yaml` is included in `samples/teams`. Copy all three files into an empty storage folder to use it. Its sample logins are `admin` / `Admin#123` and `Profit` / `profit1234`.
 
-## 🤝 Contributing
+Each project has a color stored alongside its name in the team's YAML file. Teams can choose colors for their own projects in the Projects dialog; admins can also set colors for any selected team in the dashboard. Existing projects automatically receive colors from a palette. The same colors appear on the filter tags and URL cards, with contrasting text; selected filters show a check mark. URL card content is centered.
 
-1. Fork the repository  
-2. Create a feature branch  
-3. Commit your changes  
-4. Open a pull request  
+Teams create and rename their own environment columns (such as Dev, Beta, QA, or Production) through Environments. New teams have no predefined environments. Admins can manage environments for the selected team too. Environment names are stored in the team's YAML file; old files automatically retain the environment names used by their URLs. Renaming updates associated URLs, and an environment containing URLs must be emptied before deletion.
 
-Please follow the existing coding style and test before submission.
+## Checks
 
----
+```powershell
+dotnet build URLBox.sln
+dotnet run --project tests/URLBox.Checks
+node tests/project-filter.checks.cjs
+node tests/environment-navigation.checks.cjs
+```
 
-## 📄 License
-
-All rights reserved © FindFara. 
+Checks cover YAML round trips, restart persistence, sample seeding, team isolation, editing, validation, password changes, concurrent writers, safe filenames, and malformed-file protection.

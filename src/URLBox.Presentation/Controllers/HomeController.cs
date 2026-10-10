@@ -1,241 +1,101 @@
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using URLBox.Application.Services;
+using URLBox.Application;
 using URLBox.Application.ViewModel;
 using URLBox.Domain.Authorization;
-using URLBox.Domain.Entities;
-using URLBox.Domain.Enums;
+using URLBox.Domain.Interfaces;
 using URLBox.Domain.Models;
 
-namespace URLBox.Presentation.Controllers
+namespace URLBox.Presentation.Controllers;
+
+[Authorize]
+public class HomeController(ITeamStore store) : Controller
 {
-    [Authorize]
-    public class HomeController : Controller
+    [AllowAnonymous]
+    public async Task<IActionResult> Index()
     {
-        private readonly UrlService _urlService;
-        private readonly ProjectService _projectService;
-        private readonly UserManager<ApplicationUser> _userManager;
-
-        private const string StatusMessageKey = "StatusMessage";
-        private const string StatusMessageTypeKey = "StatusMessageType";
-        private const string LoginErrorKey = "LoginError";
-        private const string ShowLoginModalKey = "ShowLoginModal";
-        private const string LoginReturnUrlKey = "LoginReturnUrl";
-
-        public HomeController(
-            UrlService urlService,
-            ProjectService projectService,
-            UserManager<ApplicationUser> userManager)
-        {
-            _urlService = urlService;
-            _projectService = projectService;
-            _userManager = userManager;
-        }
-
-        [AllowAnonymous]
-        public Task<IActionResult> Index()
-        {
-            return RenderIndexAsync();
-        }
-
-        [Authorize]
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> AddUrl(string url, string description, EnvironmentType environment, List<string> projects)
-        {
-            var access = await BuildUserAccessContextAsync();
-            var canManageAllUrls = access.IsAdmin || access.IsManager;
-
-            if (!canManageAllUrls)
-            {
-                SetStatusMessage("You do not have permission to add URLs.", "danger");
-                return RedirectToAction("Index");
-            }
-
-            if (string.IsNullOrWhiteSpace(url)
-                || string.IsNullOrWhiteSpace(description)
-                || projects is null
-                || !projects.Any(p => !string.IsNullOrWhiteSpace(p)))
-            {
-                SetStatusMessage("Please provide all required fields for the new URL.", "warning");
-                return RedirectToAction("Index");
-            }
-
-            var trimmedUrl = url.Trim();
-            var trimmedDescription = description.Trim();
-            var selectedProjects = projects
-                .Where(p => !string.IsNullOrWhiteSpace(p))
-                .Select(p => p.Trim())
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToList();
-
-            IEnumerable<string>? allowedProjects = null;
-            if (!canManageAllUrls)
-            {
-                allowedProjects = (await _projectService.GetProjectsForRolesAsync(access.NonSystemRoles))
-                    .Select(p => p.Name)
-                    .ToList();
-            }
-
-            try
-            {
-                await _urlService.AddUrlAsync(
-                    trimmedUrl,
-                    trimmedDescription,
-                    environment,
-                    selectedProjects,
-                    access.UserId,
-                    allowedProjects,
-                    canManageAllUrls);
-
-                SetStatusMessage("URL added successfully.", "success");
-            }
-            catch (UnauthorizedAccessException)
-            {
-                SetStatusMessage("You are not allowed to add URLs for that project.", "danger");
-            }
-            catch (InvalidOperationException ex)
-            {
-                SetStatusMessage(ex.Message, "danger");
-            }
-
-            return RedirectToAction("Index");
-        }
-
-        [Authorize]
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteUrl(int id)
-        {
-            var access = await BuildUserAccessContextAsync();
-            var canManageAllUrls = access.IsAdmin || access.IsManager;
-            if (!canManageAllUrls)
-            {
-                SetStatusMessage("You do not have permission to delete URLs.", "danger");
-                return RedirectToAction("Index");
-            }
-
-            IEnumerable<string>? allowedProjects = null;
-            if (!canManageAllUrls)
-            {
-                allowedProjects = (await _projectService.GetProjectsForRolesAsync(access.NonSystemRoles))
-                    .Select(p => p.Name)
-                    .ToList();
-            }
-
-            try
-            {
-                await _urlService.DeleteUrlAsync(id, allowedProjects, access.UserId, canManageAllUrls);
-                SetStatusMessage("URL deleted successfully.", "success");
-            }
-            catch (UnauthorizedAccessException)
-            {
-                SetStatusMessage("You are not allowed to delete this URL.", "danger");
-            }
-            catch (InvalidOperationException ex)
-            {
-                SetStatusMessage(ex.Message, "warning");
-            }
-
-            return RedirectToAction("Index");
-        }
-
-        [AllowAnonymous]
-        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-        public IActionResult Error()
-        {
-            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
-        }
-
-        private async Task<IActionResult> RenderIndexAsync()
-        {
-            var access = await BuildUserAccessContextAsync();
-            var allProjects = (await _projectService.GetProjectsAsync()).ToList();
-            var canManageAllUrls = access.IsAdmin || access.IsManager;
-            var accessibleProjects = canManageAllUrls
-                ? allProjects
-                : (await _projectService.GetProjectsForRolesAsync(access.NonSystemRoles)).ToList();
-
-            IEnumerable<string>? allowedProjects = canManageAllUrls
-                ? null
-                : accessibleProjects.Select(p => p.Name).ToList();
-
-            var urls = (await _urlService.GetUrlsAsync(allowedProjects, access.UserId, canManageAllUrls)).ToList();
-
-            List<ProjectViewModel> projects;
-            if (access.IsAdmin)
-            {
-                projects = allProjects;
-            }
-            else
-            {
-                projects = accessibleProjects.ToList();
-            }
-
-            var manageableProjects = access.IsAuthenticated
-                ? (canManageAllUrls ? allProjects : accessibleProjects)
-                : Enumerable.Empty<ProjectViewModel>();
-
-            ViewBag.Projects = projects;
-            ViewBag.ManageableProjects = manageableProjects;
-            ViewBag.assignableProjects = accessibleProjects.ToList();
-            var hasManageableProjects = manageableProjects.Any();
-            ViewBag.CanManageUrls = access.IsAuthenticated
-                && (canManageAllUrls || hasManageableProjects);
-
-            var statusMessage = TempData[StatusMessageKey] as string;
-            if (!string.IsNullOrEmpty(statusMessage))
-            {
-                ViewBag.StatusMessage = statusMessage;
-                ViewBag.StatusMessageType = TempData[StatusMessageTypeKey] as string ?? "info";
-            }
-
-            ViewBag.LoginError = TempData[LoginErrorKey];
-            ViewBag.ShowLoginModal = TempData[ShowLoginModalKey];
-            var loginReturnUrl = TempData[LoginReturnUrlKey] as string;
-            if (!string.IsNullOrEmpty(loginReturnUrl))
-            {
-                ViewBag.LoginReturnUrl = loginReturnUrl;
-            }
-
-            ViewData["Title"] = "URL dashboard";
-
-            return View("Index", urls);
-        }
-
-        private async Task<UserAccessContext> BuildUserAccessContextAsync()
-        {
-            if (User.Identity?.IsAuthenticated == true)
-            {
-                var user = await _userManager.GetUserAsync(User);
-                if (user is not null)
-                {
-                    var roles = (await _userManager.GetRolesAsync(user)).ToList();
-                    var isAdmin = roles.Contains(AppRoles.Administrator, StringComparer.OrdinalIgnoreCase);
-                    var isManager = isAdmin || roles.Contains(AppRoles.Manager, StringComparer.OrdinalIgnoreCase);
-                    return new UserAccessContext(true, isAdmin, isManager, user.Id, roles);
-                }
-            }
-
-            return UserAccessContext.Anonymous;
-        }
-
-        private void SetStatusMessage(string message, string type)
-        {
-            TempData[StatusMessageKey] = message;
-            TempData[StatusMessageTypeKey] = type;
-        }
-
-        private sealed record UserAccessContext(bool IsAuthenticated, bool IsAdmin, bool IsManager, string? UserId, IReadOnlyCollection<string> Roles)
-        {
-            public IEnumerable<string> NonSystemRoles => Roles.Where(role => !AppRoles.IsSystemRole(role));
-
-            public static UserAccessContext Anonymous { get; } = new(false, false, false, null, Array.Empty<string>());
-        }
+        var teamId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var team = teamId is not null ? await store.GetAsync(teamId) : null;
+        var projects = team?.ToProjects() ?? new List<ProjectViewModel>();
+        ViewBag.TeamId = team?.Id;
+        ViewBag.TeamName = team?.Name;
+        ViewBag.Projects = projects;
+        ViewBag.Environments = team?.Environments ?? new List<string>();
+        ViewBag.AssignableProjects = projects;
+        ViewBag.ManageableProjects = projects;
+        ViewBag.CanManageUrls = team is not null;
+        ViewBag.StatusMessage = TempData["StatusMessage"];
+        ViewBag.StatusMessageType = TempData["StatusMessageType"];
+        ViewBag.LoginError = TempData["LoginError"];
+        ViewBag.ShowLoginModal = TempData["ShowLoginModal"];
+        ViewBag.LoginReturnUrl = TempData["LoginReturnUrl"];
+        return View(team?.ToUrls() ?? new List<UrlViewModel>());
     }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public Task<IActionResult> AddUrl(string url, string description, string environment,
+        List<string> projects, string? teamId = null, string? returnUrl = null) =>
+        Change(teamId, returnUrl, id => store.SaveUrlAsync(id, null, url, description, environment, projects ?? new()), "URL added.");
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public Task<IActionResult> EditUrl(int id, string url, string description, string environment,
+        List<string> projects, string? teamId = null, string? returnUrl = null) =>
+        Change(teamId, returnUrl, target => store.SaveUrlAsync(target, id, url, description, environment, projects ?? new()), "URL updated.");
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public Task<IActionResult> DeleteUrl(int id, string? teamId = null, string? returnUrl = null) =>
+        Change(teamId, returnUrl, target => store.DeleteUrlAsync(target, id), "URL deleted.");
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public Task<IActionResult> SaveProject(string projectName, int? projectId = null, string? teamId = null, string? returnUrl = null, string? projectColor = null)
+    {
+        return Change(teamId, returnUrl, target => store.SaveProjectAsync(target, projectId, projectName, projectColor), "Project saved.");
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public Task<IActionResult> DeleteProject(int projectId, string? teamId = null, string? returnUrl = null) =>
+        Change(teamId, returnUrl, target => store.DeleteProjectAsync(target, projectId), "Project deleted.");
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public Task<IActionResult> SaveEnvironment(string environmentName, string? originalName = null, string? teamId = null, string? returnUrl = null) =>
+        Change(teamId, returnUrl, target => store.SaveEnvironmentAsync(target, environmentName, originalName), "Environment saved.");
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public Task<IActionResult> DeleteEnvironment(string environmentName, string? teamId = null, string? returnUrl = null) =>
+        Change(teamId, returnUrl, target => store.DeleteEnvironmentAsync(target, environmentName), "Environment deleted.");
+
+    private async Task<IActionResult> Change(string? teamId, string? returnUrl, Func<string, Task> operation, string message)
+    {
+        var current = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        var target = string.IsNullOrEmpty(teamId) ? current : teamId;
+        if (current is null || target is null || (target != current && !User.IsInRole(AppRoles.Administrator)))
+            return Forbid();
+        try
+        {
+            if (!ModelState.IsValid) throw new InvalidOperationException("Please review the submitted values.");
+            await operation(target);
+            TempData["StatusMessage"] = message;
+            TempData["StatusMessageType"] = "success";
+        }
+        catch (InvalidOperationException ex)
+        {
+            TempData["StatusMessage"] = ex.Message;
+            TempData["StatusMessageType"] = "danger";
+        }
+        return !string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl)
+            ? LocalRedirect(returnUrl) : RedirectToAction(nameof(Index));
+    }
+
+    [AllowAnonymous]
+    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+    public IActionResult Error() => View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
 }

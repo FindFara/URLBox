@@ -1,0 +1,48 @@
+@model IEnumerable<URLBox.Application.ViewModel.ProjectViewModel>
+<div class="modal fade" id="editUrlModal" tabindex="-1" aria-labelledby="editUrlLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editUrlLabel">Edit URL</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form asp-controller="Home" asp-action="EditUrl" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" id="editUrlId" />
+                    <input type="hidden" name="teamId" id="editUrlTeam" value="@ViewBag.TeamId" />
+                    <input type="hidden" name="returnUrl" value="@(Context.Request.Path + Context.Request.QueryString)" />
+                    <div class="mb-3">
+                        <label for="editUrlValue" class="form-label">URL</label>
+                        <input id="editUrlValue" name="url" type="url" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label for="editUrlDescription" class="form-label">Description</label>
+                        <input id="editUrlDescription" name="description" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label for="editUrlEnvironment" class="form-label">Environment</label>
+                        <select id="editUrlEnvironment" name="environment" class="form-select" required>
+                            @foreach (var environment in (IEnumerable<string>)ViewBag.Environments)
+                            {
+                                <option value="@environment">@environment</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editUrlProjects" class="form-label">Projects</label>
+                        <select id="editUrlProjects" name="projects" class="form-select" multiple required>
+                            @foreach (var project in Model)
+                            {
+                                <option value="@project.Name">@project.Name</option>
+                            }
+                        </select>
+                        <div class="form-text">Select one or more projects. Hold Ctrl or Command to select several.</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Save changes</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="~/js/url-editor.js" asp-append-version="true" defer></script>

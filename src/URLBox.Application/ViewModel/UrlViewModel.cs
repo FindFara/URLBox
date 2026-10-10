@@ -1,11 +1,12 @@
 ﻿using System.Collections.Generic;
-using URLBox.Domain.Enums;
 
 namespace URLBox.Application.ViewModel
 {
     public class UrlViewModel
     {
         public int Id { get; set; }
+        public string TeamId { get; set; } = string.Empty;
+        public string TeamName { get; set; } = string.Empty;
 
         public string UrlValue { get; set; } = string.Empty;
 
@@ -15,7 +16,7 @@ namespace URLBox.Application.ViewModel
 
         public int Order { get; set; }
 
-        public EnvironmentType Environment { get; set; }
+        public string Environment { get; set; } = string.Empty;
 
         public bool CanManage { get; set; }
 

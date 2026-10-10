@@ -1,0 +1,31 @@
+@model IEnumerable<ProjectViewModel>
+<div class="modal fade" id="addUrlModal" tabindex="-1" aria-labelledby="addUrlLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="addUrlLabel">Add URL</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <form asp-controller="Home" asp-action="AddUrl" method="post">
+                <input type="hidden" name="teamId" value="@ViewBag.TeamId" />
+                <input type="hidden" name="returnUrl" value="@(Context.Request.Path + Context.Request.QueryString)" />
+                <div class="mb-3"><label for="addUrlValue" class="form-label">URL</label><input id="addUrlValue" name="url" type="url" class="form-control" required placeholder="https://" /></div>
+                <div class="mb-3"><label for="addUrlDescription" class="form-label">Description</label><input id="addUrlDescription" name="description" class="form-control" required /></div>
+                <div class="mb-3">
+                    <label for="addUrlEnvironment" class="form-label">Environment</label>
+                    <select id="addUrlEnvironment" name="environment" class="form-select" required>
+                        @foreach (var environment in (IEnumerable<string>)ViewBag.Environments) { <option value="@environment">@environment</option> }
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="addUrlProjects" class="form-label">Projects</label>
+                    <select id="addUrlProjects" name="projects" class="form-select" multiple required>
+                        @foreach (var project in Model) { <option value="@project.Name">@project.Name</option> }
+                    </select>
+                    <div class="form-text">Select one or more projects.</div>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">Add URL</button>
+            </form>
+        </div>
+    </div></div>
+</div>

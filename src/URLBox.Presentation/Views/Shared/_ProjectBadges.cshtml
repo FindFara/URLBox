@@ -1,0 +1,5 @@
+@model IEnumerable<ProjectViewModel>
+@foreach (var project in Model)
+{
+    <span class="badge rounded-pill" style="background-color: @project.Color; color: @project.TextColor">@project.Name</span>
+}

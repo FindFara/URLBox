@@ -1,471 +1,108 @@
 @model IList<URLBox.Application.ViewModel.UrlViewModel>
-@using System.Collections.Generic
-@using System.Linq
-@using URLBox.Domain.Enums
-@using URLBox.Application.ViewModel
 @{
-    Layout = null;
+    ViewData["Title"] = ViewBag.TeamName ?? "Team login";
     var projects = (ViewBag.Projects as IEnumerable<ProjectViewModel> ?? Enumerable.Empty<ProjectViewModel>()).ToList();
-    var assignableProjects = (ViewBag.AssignableProjects as IEnumerable<ProjectViewModel> ?? Enumerable.Empty<ProjectViewModel>()).ToList();
-    var loginError = ViewBag.LoginError as string;
-    var statusMessage = ViewBag.StatusMessage as string;
-    var statusMessageTone = ((ViewBag.StatusMessageType as string) ?? "info").ToString().ToLowerInvariant();
-    var loginReturnUrl = ViewBag.LoginReturnUrl as string ?? Url.Action("Index", "Home");
-    var showLoginModal = (ViewBag.ShowLoginModal as bool?) ?? false;
-    var shouldShowLoginModal = showLoginModal || !string.IsNullOrEmpty(loginError);
-    var isAuthenticated = User.Identity?.IsAuthenticated ?? false;
-    var isAdmin = User.IsInRole("Administrator");
-    var canManageUrls = (ViewBag.CanManageUrls as bool?) ?? false;
+    var authenticated = User.Identity?.IsAuthenticated == true;
+    var environments = (ViewBag.Environments as IEnumerable<string> ?? Enumerable.Empty<string>()).ToList();
 }
-
-<!doctype html>
-<html lang="en" data-bs-theme="light">
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>@(ViewData["Title"] ?? "URL Box")</title>
-    <script>
-        const storedTheme = localStorage.getItem('urlbox-theme');
-        if (storedTheme) {
-            document.documentElement.setAttribute('data-bs-theme', storedTheme);
-        }
-    </script>
-    <link rel="stylesheet" href="~/css/site.css" />
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-</head>
-<body>
-    <div class="mobile-topbar d-lg-none">
-        <button id="hamburgerBtn" class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="offcanvas" data-bs-target="#leftMenu" aria-controls="leftMenu" aria-label="Open menu">
-            <i class="bi bi-list"></i>
-        </button>
-        <span class="fw-semibold">URL Box</span>
-    </div>
-
-    <aside id="leftSidebar" class="d-none d-lg-flex flex-column align-items-center gap-3">
-        @if (isAdmin)
-        {
-            <a asp-controller="Admin" asp-action="Dashboard" class="btn btn-warning btn-icon" data-bs-placement="right" title="Admin dashboard">
-                <i class="bi bi-speedometer"></i>
-            </a>
-        }
-
-        @if (isAuthenticated)
-        {
-            <form asp-controller="Account" asp-action="Logout" method="post" class="m-0">
-                @Html.AntiForgeryToken()
-                <button type="submit" class="btn btn-outline-secondary btn-icon" data-bs-placement="right" title="Logout">
-                    <i class="bi bi-box-arrow-right"></i>
-                </button>
+@if (!authenticated)
+{
+    <div class="card shadow-sm login-card mx-auto mt-4">
+        <div class="card-body p-4">
+            <h1 class="h4">Team login</h1>
+            <p class="text-muted">Enter your team's shared name and password.</p>
+            @if (ViewBag.LoginError is string error)
+            {
+                <div class="alert alert-danger" role="alert">@error</div>
+            }
+            <form asp-controller="Account" asp-action="Login" method="post">
+                <input type="hidden" name="ReturnUrl" value="@ViewBag.LoginReturnUrl" />
+                <div class="mb-3">
+                    <label for="teamName" class="form-label">Team name</label>
+                    <input id="teamName" name="TeamName" class="form-control" required autocomplete="username" autofocus />
+                </div>
+                <div class="mb-3">
+                    <label for="teamPassword" class="form-label">Password</label>
+                    <input id="teamPassword" name="Password" type="password" class="form-control" required autocomplete="current-password" />
+                </div>
+                <button type="submit" class="btn btn-primary w-100">Sign in</button>
             </form>
-        }
-        else
-        {
-            <button type="button" class="btn btn-primary btn-icon" data-bs-toggle="modal" data-bs-target="#loginModal" data-bs-placement="right" title="Login">
-                <i class="bi bi-person"></i>
-            </button>
-        }
-
-        @if (canManageUrls)
-        {
-            <button type="button" class="btn btn-primary btn-icon" data-bs-toggle="modal" data-bs-target="#addUrlModal" data-bs-placement="right" title="Add URL">
-                <i class="bi bi-plus-lg"></i>
-            </button>
-        }
-
-        <button id="projectToggleDesktop" type="button" class="btn btn-outline-secondary btn-icon" data-bs-placement="right">
-            <i class="bi bi-tag"></i>
-        </button>
-        <button id="themeToggleSidebar" type="button" class="btn btn-outline-secondary btn-icon" data-bs-placement="right" title="Dark mode">
-            <i id="themeIconSidebar" class="bi bi-moon-fill"></i>
-        </button>
-        <a href="https://github.com/FindFara/URLBox" target="_blank" class="btn btn-dark btn-icon" data-bs-placement="right" title="GitHub repo">
-            <i class="bi bi-github"></i>
-        </a>
-    </aside>
-
-    <div class="offcanvas offcanvas-start d-lg-none" tabindex="-1" id="leftMenu" aria-labelledby="leftMenuLabel">
-        <div class="offcanvas-header">
-            <h5 id="leftMenuLabel" class="mb-0">Menu</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
         </div>
-        <div class="offcanvas-body d-flex flex-column gap-3">
-            @if (isAdmin)
+    </div>
+}
+else
+{
+    <div class="team-toolbar mb-4">
+        <div class="team-toolbar-tags"><partial name="_ProjectFilter" model="projects" /></div>
+        <div class="team-toolbar-name d-flex align-items-stretch gap-2">
+            @if (environments.Count > 5)
             {
-                <a asp-controller="Admin" asp-action="Dashboard" class="btn btn-warning w-100" data-bs-dismiss="offcanvas">
-                    <i class="bi bi-speedometer me-1"></i> Admin dashboard
-                </a>
-                <button type="button" class="btn btn-outline-secondary w-100" data-bs-toggle="modal" data-bs-target="#manageProjectsModal" data-bs-dismiss="offcanvas">
-                    <i class="bi bi-kanban me-1"></i> Manage projects
+                <button type="button" class="btn environment-nav" data-environment-previous aria-label="Previous environments" title="Previous environments" aria-controls="environmentColumns" disabled>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
                 </button>
             }
-
-            @if (isAuthenticated)
+            <div class="card px-4 py-2 text-center d-flex justify-content-center"><h1 class="h5 mb-0">@ViewBag.TeamName</h1></div>
+            @if (environments.Count > 5)
             {
-                <form asp-controller="Account" asp-action="Logout" method="post" class="d-grid">
-                    @Html.AntiForgeryToken()
-                    <button type="submit" class="btn btn-outline-secondary w-100" data-bs-dismiss="offcanvas">
-                        <i class="bi bi-box-arrow-right me-1"></i> Logout
-                    </button>
-                </form>
-
-                @if (canManageUrls)
-                {
-                    <button type="button" class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#addUrlModal" data-bs-dismiss="offcanvas">
-                        <i class="bi bi-plus-lg me-1"></i> Add URL
-                    </button>
-                }
-            }
-            else
-            {
-                <button type="button" class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#loginModal" data-bs-dismiss="offcanvas">
-                    <i class="bi bi-person me-1"></i> Login
+                <button type="button" class="btn environment-nav" data-environment-next aria-label="Next environments" title="Next environments" aria-controls="environmentColumns">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg>
                 </button>
             }
-
-            <button type="button" class="btn btn-outline-secondary w-100" data-bs-toggle="offcanvas" data-bs-target="#projectMenu" data-bs-dismiss="offcanvas">
-                <i class="bi bi-tag me-1"></i> Projects
-            </button>
-            <button id="themeToggleMobile" type="button" class="btn btn-outline-secondary w-100">
-                <i id="themeIconMobile" class="bi bi-moon-fill me-1"></i> Dark mode
-            </button>
-            <a href="https://github.com/FindFara/URLBox" target="_blank" class="btn btn-dark w-100">
-                <i class="bi bi-github me-1"></i> GitHub
-            </a>
+        </div>
+        <div class="team-toolbar-actions d-flex gap-2">
+            <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#projectsModal">Projects</button>
+            <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#environmentsModal">Environments</button>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUrlModal" disabled="@(projects.Count == 0 || environments.Count == 0)">Add URL</button>
         </div>
     </div>
-
-    <div class="offcanvas offcanvas-start" tabindex="-1" id="projectMenu" aria-labelledby="projectMenuLabel">
-        <div class="offcanvas-header">
-            <h5 id="projectMenuLabel" class="mb-0">Projects</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-        </div>
-        <div class="offcanvas-body d-flex flex-column gap-3">
-            @foreach (var project in projects)
-            {
-                <button type="button" class="btn btn-outline-primary w-100" onclick="filterByProject('@project.Name')" data-bs-dismiss="offcanvas">@project.Name</button>
-            }
-            <button type="button" class="btn btn-secondary w-100" onclick="filterByProject('all')" data-bs-dismiss="offcanvas">Show all</button>
-        </div>
-    </div>
-
-    <div id="projectSidebar" class="flex-column gap-2">
-        @foreach (var project in projects)
-        {
-            <button type="button" class="btn btn-outline-primary btn-sm" onclick="applyProjectFilter('@project.Name')">@project.Name</button>
-        }
-        <button type="button" class="btn btn-secondary btn-sm" onclick="applyProjectFilter('all')">Show all</button>
-    </div>
-
-    @if (canManageUrls)
+    <div class="alert alert-info" id="projectFilterEmpty" role="status" hidden>No URLs match the selected projects.</div>
+    @if (ViewBag.StatusMessage is string message)
     {
-        <div class="modal fade" id="addUrlModal" tabindex="-1" aria-labelledby="addUrlModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content shadow-sm">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="addUrlModalLabel">Add new URL</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        @if (assignableProjects.Any())
-                        {
-                            <form method="post" asp-action="AddUrl">
-                                @Html.AntiForgeryToken()
-                                <div class="form-group mb-3">
-                                    <label for="url">URL</label>
-                                    <input type="url" class="form-control" id="url" name="url" placeholder="https://example.com" required />
-                                </div>
-                                <div class="form-group mb-3">
-                                    <label for="description">Description</label>
-                                    <input type="text" class="form-control" id="description" name="description" placeholder="Enter description" required />
-                                </div>
-                                <div class="form-group mb-3">
-                                    <label for="project">Projects</label>
-                                    <select class="form-select" id="project" name="projects" multiple required>
-                                        @foreach (var project in assignableProjects)
-                                        {
-                                            <option value="@project.Name">@project.Name</option>
-                                        }
-                                    </select>
-                                    <small class="form-text text-muted">Hold Ctrl (Windows) or Command (macOS) to select multiple projects.</small>
-                                </div>
-                                <div class="form-group mb-3">
-                                    <label for="environment">Environment</label>
-                                    <select class="form-select" id="environment" name="environment">
-                                        @foreach (EnvironmentType envType in Enum.GetValues(typeof(EnvironmentType)))
-                                        {
-                                            <option value="@envType">@envType</option>
-                                        }
-                                    </select>
-                                </div>
-                                <button type="submit" class="btn btn-primary w-100">Add URL</button>
-                            </form>
-                        }
-                        else
-                        {
-                            <div class="alert alert-info mb-0" role="alert">
-                                No projects are available for you to assign URLs to yet.
-                            </div>
-                        }
-                    </div>
-                </div>
-            </div>
-        </div>
+        <div class="alert alert-@(ViewBag.StatusMessageType ?? "info")" role="alert">@message</div>
     }
-
-    <div class="modal fade" id="deleteConfirmationModal" tabindex="-1" aria-labelledby="deleteConfirmationModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content shadow-sm">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="deleteConfirmationModalLabel">Confirm deletion</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Are you sure you want to delete this URL?</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <form id="deleteForm" method="post" asp-action="DeleteUrl">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="id" id="deleteId" />
-                        <button type="submit" class="btn btn-danger">Yes, delete</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content shadow-sm">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="loginModalLabel">Login</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    @if (!string.IsNullOrEmpty(loginError))
-                    {
-                        <div class="alert alert-danger" role="alert">
-                            @loginError
-                        </div>
-                    }
-                    <form asp-controller="Account" asp-action="Login" method="post">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="ReturnUrl" value="@loginReturnUrl" />
-                        <div class="mb-3">
-                            <label for="loginUserName" class="form-label">Username</label>
-                            <input type="text" class="form-control" id="loginUserName" name="UserName" required autocomplete="username" />
-                        </div>
-                        <div class="mb-3">
-                            <label for="loginPassword" class="form-label">Password</label>
-                            <input type="password" class="form-control" id="loginPassword" name="Password" required autocomplete="current-password" />
-                        </div>
-                        <div class="form-check mb-3">
-                            @Html.CheckBox("RememberMe", false, new { @class = "form-check-input", id = "loginRememberMe" })
-                            <label class="form-check-label" for="loginRememberMe">Remember me</label>
-                        </div>
-                        <button type="submit" class="btn btn-primary w-100">Login</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="container-fluid mt-4">
-        @if (!string.IsNullOrEmpty(statusMessage))
+    @if (projects.Count == 0)
+    {
+        <div class="alert alert-info">Create a project using the Projects button to add your first URL.</div>
+    }
+    @if (environments.Count == 0)
+    {
+        <div class="alert alert-info">Create your first environment using Environments to add URL columns.</div>
+    }
+    <div class="environment-columns" id="environmentColumns" style="--environment-columns: @Math.Min(Math.Max(environments.Count, 1), 5); --environment-mobile-columns: @Math.Min(Math.Max(environments.Count, 1), 2)">
+        @for (var environmentIndex = 0; environmentIndex < environments.Count; environmentIndex++)
         {
-            <div class="alert alert-@statusMessageTone alert-dismissible fade show" role="alert">
-                @statusMessage
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        }
-        <div class="row mt-4">
-            @if (Model.Any())
-            {
-                @foreach (EnvironmentType envType in Enum.GetValues(typeof(EnvironmentType)))
+            var environment = environments[environmentIndex];
+            <div data-environment-column hidden="@(environmentIndex >= 5)">
+                <h2 class="h5 mb-3">@environment</h2>
+                @foreach (var url in Model.Where(u => u.Environment.Equals(environment, StringComparison.OrdinalIgnoreCase)))
                 {
-                    var urlsForEnvironment = Model.Where(u => u.Environment == envType).ToList();
-                    if (!urlsForEnvironment.Any())
-                    {
-                        continue;
-                    }
-                    <div class="col-md-6 col-lg-3 mb-4">
-                        <h4 class="text-primary">@envType</h4>
-                        @foreach (var url in urlsForEnvironment)
-                        {
-                            var projectNames = (url.ProjectTags?.Any() ?? false)
-                                ? url.ProjectTags
-                                : new List<string> { "Unknown" };
-                            var canManageEntry = canManageUrls && url.CanManage;
-                            var dataProjects = string.Join("|", projectNames);
-                            <div class="card p-2 mb-3 shadow-sm" data-projects="@dataProjects">
-                                <h6 class="mb-1" style="color:var(--text-muted-strong);">
-                                    @url.Description
-                                    @foreach (var projectName in projectNames)
-                                    {
-                                        <span class="badge tag-badge">@projectName</span>
-                                    }
-                                </h6>
-                                <div class="input-group input-group-sm mb-2">
-                                    <input type="text" class="form-control" value="@url.UrlValue" readonly />
-                                    <button class="btn btn-outline-secondary btn-sm" type="button" onclick="copyToClipboard('@url.UrlValue')">Copy</button>
-                                </div>
-                                <div class="btn-group btn-group-sm w-100" role="group">
-                                    <a href="@url.UrlValue" target="_blank" class="btn btn-outline-secondary">Open</a>
-                                    @if (canManageEntry)
-                                    {
-                                        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteConfirmationModal" onclick="setDeleteId(@url.Id)">
-                                            Delete
-                                        </button>
-                                    }
-                                </div>
+                    <div class="card shadow-sm mb-3" data-project-entry data-projects="@System.Text.Json.JsonSerializer.Serialize(url.ProjectTags)">
+                        <div class="card-body text-center">
+                            <h3 class="h6">@url.Description</h3>
+                            <div class="d-flex flex-wrap justify-content-center gap-1 mb-2">
+                                <partial name="_ProjectBadges" model="projects.Where(p => url.ProjectTags.Contains(p.Name))" />
                             </div>
-                        }
+                            <p class="small text-break text-muted">@url.UrlValue</p>
+                            <div class="d-flex flex-wrap justify-content-center gap-1">
+                                <a href="@url.UrlValue" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-secondary">Open</a>
+                                <button type="button" data-copy-url="@url.UrlValue" class="btn btn-sm btn-outline-secondary">Copy</button>
+                                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editUrlModal"
+                                        data-url-id="@url.Id" data-url-team="@url.TeamId" data-url-value="@url.UrlValue" data-url-description="@url.Description"
+                                        data-url-environment="@url.Environment" data-url-projects="@System.Text.Json.JsonSerializer.Serialize(url.ProjectTags)">Edit</button>
+                                <form asp-action="DeleteUrl" method="post" onsubmit="return confirm('Delete this URL?')">
+                                    <input type="hidden" name="id" value="@url.Id" />
+                                    <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
+                                </form>
+                            </div>
+                        </div>
                     </div>
                 }
-            }
-            else
-            {
-                <div class="col-12">
-                    <div class="alert alert-info" role="alert">
-                        No URLs available for your account yet.
-                    </div>
-                </div>
-            }
-        </div>
+            </div>
+        }
     </div>
-
-    <footer class="footer">
-        <h6>Fara.Co</h6>
-    </footer>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        function setDeleteId(id) {
-            document.getElementById('deleteId').value = id;
-        }
-
-        function copyToClipboard(url) {
-            if (navigator.clipboard) {
-                navigator.clipboard.writeText(url).then(() => alert('URL copied to clipboard'))
-                    .catch(err => {
-                        console.error('Failed to copy: ', err);
-                        alert('Failed to copy URL. Please try again!');
-                    });
-            } else {
-                const temp = document.createElement('textarea');
-                temp.value = url;
-                document.body.appendChild(temp);
-                temp.select();
-                try {
-                    document.execCommand('copy');
-                    alert('URL copied to clipboard');
-                } catch (err) {
-                    alert('Failed to copy URL. Please try again!');
-                }
-                document.body.removeChild(temp);
-            }
-        }
-
-        (function () {
-            const KEY = 'urlbox-theme';
-            const htmlEl = document.documentElement;
-            const toggles = [
-                { btn: document.getElementById('themeToggleSidebar'), icon: document.getElementById('themeIconSidebar') },
-                { btn: document.getElementById('themeToggleMobile'), icon: document.getElementById('themeIconMobile') }
-            ].filter(x => x.btn && x.icon);
-
-            const saved = localStorage.getItem(KEY);
-            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-            const initial = saved || (prefersDark ? 'dark' : 'light');
-            setTheme(initial);
-
-            toggles.forEach(({ btn }) => btn.addEventListener('click', () => {
-                const next = htmlEl.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
-                setTheme(next);
-            }));
-
-            function setTheme(mode) {
-                htmlEl.setAttribute('data-bs-theme', mode);
-                localStorage.setItem(KEY, mode);
-                toggles.forEach(({ icon }) => {
-                    icon.classList.toggle('bi-moon-fill', mode !== 'dark');
-                    icon.classList.toggle('bi-brightness-high-fill', mode === 'dark');
-                });
-            }
-
-            const tipEls = [].slice.call(document.querySelectorAll('#leftSidebar [title]'));
-            tipEls.forEach(el => new bootstrap.Tooltip(el));
-        })();
-
-        (function () {
-            const ham = document.getElementById('hamburgerBtn');
-            const offcanvasEl = document.getElementById('leftMenu');
-            if (ham && offcanvasEl) {
-                offcanvasEl.addEventListener('show.bs.offcanvas', () => ham.classList.add('invisible'));
-                offcanvasEl.addEventListener('hidden.bs.offcanvas', () => ham.classList.remove('invisible'));
-            }
-        })();
-
-        (function () {
-            window.filterByProject = function (project) {
-                document.querySelectorAll('.card[data-projects]').forEach(card => {
-                    const projectsAttr = card.getAttribute('data-projects') || '';
-                    const projectList = projectsAttr.split('|').map(p => p.trim()).filter(Boolean);
-                    if (project === 'all' || projectList.includes(project)) {
-                        card.style.display = '';
-                    } else {
-                        card.style.display = 'none';
-                    }
-                });
-            };
-
-            window.applyProjectFilter = function (project) {
-                filterByProject(project);
-                const sidebar = document.getElementById('projectSidebar');
-                if (sidebar) sidebar.classList.remove('show');
-            };
-
-            window.toggleProjectSidebar = function () {
-                const sidebar = document.getElementById('projectSidebar');
-                if (sidebar) sidebar.classList.toggle('show');
-            };
-
-            (function () {
-                const projectBtn = document.getElementById('projectToggleDesktop');
-                const sidebarEl = document.getElementById('projectSidebar');
-                if (projectBtn && sidebarEl) {
-                    projectBtn.addEventListener('mouseenter', () => {
-                        const rect = projectBtn.getBoundingClientRect();
-                        sidebarEl.style.top = rect.top + 'px';
-                        sidebarEl.style.left = rect.right + 'px';
-                        sidebarEl.classList.add('show');
-                    });
-                    projectBtn.addEventListener('mouseleave', () => {
-                        setTimeout(() => {
-                            if (!sidebarEl.matches(':hover') && !projectBtn.matches(':hover')) {
-                                sidebarEl.classList.remove('show');
-                            }
-                        }, 100);
-                    });
-                    sidebarEl.addEventListener('mouseleave', () => {
-                        if (!projectBtn.matches(':hover')) {
-                            sidebarEl.classList.remove('show');
-                        }
-                    });
-                }
-            })();
-        })();
-    </script>
-    @if (shouldShowLoginModal)
-    {
-        <script>
-            const loginModalEl = document.getElementById('loginModal');
-            if (loginModalEl) {
-                const loginModal = new bootstrap.Modal(loginModalEl);
-                loginModal.show();
-            }
-        </script>
-    }
-</body>
-</html>
+    <partial name="_ManageProjectsModal" model="projects" />
+    <partial name="_ManageEnvironmentsModal" model="environments" />
+    <partial name="_AddUrlModal" model="projects" />
+    <partial name="_EditUrlModal" model="projects" />
+    <script src="~/js/environment-navigation.js" asp-append-version="true" defer></script>
+}

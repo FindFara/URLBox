@@ -1,0 +1,9 @@
+@model IEnumerable<ProjectViewModel>
+<div class="d-flex flex-wrap align-items-center gap-2" role="group" aria-label="Filter URLs by project">
+    <span class="text-muted small me-1">Projects</span>
+    <button type="button" class="btn btn-primary btn-sm rounded-pill" data-project-all aria-pressed="true">All</button>
+    @foreach (var project in Model)
+    {
+        <button type="button" class="btn project-tag btn-sm rounded-pill" style="--project-color: @project.Color; --project-text: @project.TextColor" data-project-filter="@project.Name" aria-pressed="false">@project.Name</button>
+    }
+</div>

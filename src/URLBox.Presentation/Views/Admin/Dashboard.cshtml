@@ -1,462 +1,87 @@
-@using System.Linq
 @using System.Text.Json
 @model URLBox.Presentation.Models.AdminDashboardViewModel
 @{
     ViewData["Title"] = "Admin dashboard";
-    Layout = "~/Views/Shared/_AdminLayout.cshtml";
-
-    var totalUsers = Model.TotalUsers;
-    var totalRoles = Model.TotalRoles;
-    var totalUrls = Model.UrlStatistics.TotalUrls;
-
-    var roleLabelList = Model.Roles
-        .Select(r => r.RoleName)
-        .Concat(Model.UrlStatistics.UrlsPerRole.Select(r => r.RoleName))
-        .Where(name => !string.IsNullOrWhiteSpace(name))
-        .Distinct(StringComparer.OrdinalIgnoreCase)
-        .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
-        .ToList();
-
-    var userCountsByRole = Model.Roles.ToDictionary(r => r.RoleName, r => r.AssignedUserCount, StringComparer.OrdinalIgnoreCase);
-    var urlCountsByRole = Model.UrlStatistics.UrlsPerRole.ToDictionary(r => r.RoleName, r => r.UrlCount, StringComparer.OrdinalIgnoreCase);
-
-    var userCountsSeries = roleLabelList.Select(label => userCountsByRole.TryGetValue(label, out var count) ? count : 0).ToList();
-    var urlCountsSeries = roleLabelList.Select(label => urlCountsByRole.TryGetValue(label, out var count) ? count : 0).ToList();
-
-    var roleLabelsJson = JsonSerializer.Serialize(roleLabelList);
-    var userCountsJson = JsonSerializer.Serialize(userCountsSeries);
-    var urlCountsJson = JsonSerializer.Serialize(urlCountsSeries);
-    var hasRoleChartData = roleLabelList.Any();
+    var selected = Model.SelectedTeam;
 }
-
-<section id="adminDashboardTop" class="py-4">
-
-
-    @if (!string.IsNullOrEmpty(Model.StatusMessage))
-    {
-        <div class="alert alert-info alert-dismissible fade show" role="alert">
-            <i class="bi bi-info-circle me-1"></i>
-            @Model.StatusMessage
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    }
-
-    <div class="row g-3 g-md-4 mb-4">
-        <div class="col-6 col-lg-3">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body d-flex flex-column gap-2">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span class="text-uppercase text-muted small">Users</span>
-                        <i class="bi bi-people text-primary fs-5"></i>
-                    </div>
-                    <span class="fs-3 fw-semibold">@totalUsers</span>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-lg-3">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body d-flex flex-column gap-2">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span class="text-uppercase text-muted small">Roles</span>
-                        <i class="bi bi-diagram-3 text-warning fs-5"></i>
-                    </div>
-                    <span class="fs-3 fw-semibold">@totalRoles</span>
-                </div>
-            </div>
-        </div>
-        <div class="col-6 col-lg-3">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body d-flex flex-column gap-2">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span class="text-uppercase text-muted small">URLs</span>
-                        <i class="bi bi-link-45deg text-success fs-5"></i>
-                    </div>
-                    <span class="fs-3 fw-semibold">@totalUrls</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row g-4 mb-4">
-        <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-header bg-transparent py-3">
-                    <h2 class="h5 mb-0">Role coverage</h2>
-                </div>
-                <div class="card-body">
-                    <div class="position-relative" style="min-height: 280px;">
-                        <canvas id="roleOverviewChart" class="@(hasRoleChartData ? string.Empty : "d-none")"></canvas>
-                        <div class="chart-empty-state @(hasRoleChartData ? "d-none" : string.Empty) position-absolute top-50 start-50 translate-middle text-center">
-                            <p class="text-muted small mb-0">Add users to roles or assign URLs to populate this chart.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row g-4">
-        <div class="col-12">
-            <div class="card shadow-sm h-100">
-                <div class="card-header bg-transparent py-3">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h2 class="h5 mb-0">Roles</h2>
-                        <span class="badge text-bg-secondary">@Model.Roles.Count</span>
-                    </div>
-
-                <div class="card-body">
-                     <div class="d-flex flex-wrap gap-2 align-self-start">
-                         <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createRoleModal">
-                             <i class="bi bi-shield-plus me-1"></i>
-                             New role
-                         </button>
-                     </div>
-                </div>
-                <div class="card-body">
-                    @if (Model.Roles.Count == 0)
-                    {
-                        <p class="text-muted mb-0">No roles have been created yet.</p>
-                    }
-                    else
-                    {
-                        <div class="admin-scroll-section">
-                            <ul class="list-group list-group-flush">
-                                @foreach (var role in Model.Roles)
-                                {
-                                    <li class="list-group-item d-flex justify-content-between align-items-center gap-3">
-                                        <div class="flex-grow-1">
-                                            <div class="fw-medium">@role.RoleName</div>
-                                            <small class="text-muted d-block">@role.AssignedUserCount user@(role.AssignedUserCount == 1 ? string.Empty : "s")</small>
-                                            @if (role.AssignedProjects.Any())
-                                            {
-                                                <div class="d-flex flex-wrap gap-2 mt-2">
-                                                    @foreach (var project in role.AssignedProjects)
-                                                    {
-                                                        <form asp-action="RemoveProjectFromRole" method="post" class="d-inline">
-                                                            @Html.AntiForgeryToken()
-                                                            <input type="hidden" name="projectId" value="@project.Id" />
-                                                            <input type="hidden" name="roleId" value="@role.RoleId" />
-                                                            <button type="submit" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1">
-                                                                <span>@project.Name</span>
-                                                                <i class="bi bi-x-lg"></i>
-                                                            </button>
-                                                        </form>
-                                                    }
-                                                </div>
-                                            }
-                                            else
-                                            {
-                                                <div class="text-muted small mt-2">No projects assigned</div>
-                                            }
-                                        </div>
-                                        <div class="btn-group" role="group">
-                                            <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="modal"
-                                                    data-bs-target="#renameRoleModal" data-role-id="@role.RoleId"
-                                                    data-role-name="@role.RoleName">
-                                                <i class="bi bi-pencil"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="modal"
-                                                    data-bs-target="#assignProjectModal" data-role-id="@role.RoleId"
-                                                    data-role-name="@role.RoleName">
-                                                <i class="bi bi-kanban"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-outline-danger" type="button" data-bs-toggle="modal"
-                                                    data-bs-target="#deleteRoleModal" data-role-id="@role.RoleId"
-                                                    data-role-name="@role.RoleName">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </div>
-                                    </li>
-                                }
-                            </ul>
-                        </div>
-                    }
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row g-4 mt-4">
-        <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-header bg-transparent py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
-                    <h2 class="h5 mb-0">Projects</h2>
-                    <span class="badge text-bg-secondary">@Model.Projects.Count</span>
-                </div>
-                <div class="card-body">
-                    <div class="mb-4">
-                        <h3 class="h6">Add a new project</h3>
-                        <form asp-action="CreateProject" method="post" class="row g-2">
-                            @Html.AntiForgeryToken()
-                            <div class="col-12 col-md-8 col-lg-9">
-                                <label class="visually-hidden" for="newProjectName">Project name</label>
-                                <input id="newProjectName" name="projectName" class="form-control" placeholder="Enter project name" required />
-                            </div>
-                            <div class="col-12 col-md-4 col-lg-3 d-grid">
-                                <button type="submit" class="btn btn-primary">Add project</button>
-                            </div>
-                        </form>
-                    </div>
-
-                    <h3 class="h6">Existing projects</h3>
-                    @if (Model.Projects.Any())
-                    {
-                        <div class="table-responsive">
-                            <table class="table align-middle">
-                                <thead>
-                                    <tr>
-                                        <th scope="col">Project</th>
-                                        <th scope="col" class="text-end">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var project in Model.Projects)
-                                    {
-                                        <tr>
-                                            <td>
-                                                <form asp-action="UpdateProject" method="post" class="row g-2 align-items-center">
-                                                    @Html.AntiForgeryToken()
-                                                    <input type="hidden" name="projectId" value="@project.Id" />
-                                                    <div class="col-12 col-md-8 col-lg-9">
-                                                        <label class="visually-hidden" for="projectName_@project.Id">Project name</label>
-                                                        <input id="projectName_@project.Id" name="projectName" value="@project.Name" class="form-control" required />
-                                                    </div>
-                                                    <div class="col-12 col-md-4 col-lg-3 d-grid">
-                                                        <button type="submit" class="btn btn-outline-primary">Save</button>
-                                                    </div>
-                                                </form>
-                                            </td>
-                                            <td class="text-end">
-                                                <form asp-action="DeleteProject" method="post" class="d-inline" onsubmit="return confirm('Delete this project? This cannot be undone.');">
-                                                    @Html.AntiForgeryToken()
-                                                    <input type="hidden" name="projectId" value="@project.Id" />
-                                                    <button type="submit" class="btn btn-outline-danger">Delete</button>
-                                                </form>
-                                            </td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="alert alert-info mb-0" role="alert">
-                            No projects have been created yet.
-                        </div>
-                    }
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- Create role modal -->
-<div class="modal fade" id="createRoleModal" tabindex="-1" aria-labelledby="createRoleLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="createRoleLabel">Create role</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form asp-action="CreateRole" method="post" id="createRoleForm">
-                    @Html.AntiForgeryToken()
-                    <div class="mb-3">
-                        <label for="createRoleName" class="form-label">Role name</label>
-                        <input id="createRoleName" name="roleName" class="form-control" required maxlength="256" />
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100">Create role</button>
-                </form>
-            </div>
-        </div>
-    </div>
+<div class="d-flex flex-wrap justify-content-between gap-3 mb-4">
+    <h1 class="h3 mb-0">Admin dashboard</h1>
+    <a asp-action="TeamManager" class="btn btn-outline-primary">Manage teams</a>
 </div>
-
-<!-- Rename role modal -->
-<div class="modal fade" id="renameRoleModal" tabindex="-1" aria-labelledby="renameRoleLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="renameRoleLabel">Rename role</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form asp-action="UpdateRole" method="post" id="renameRoleForm">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="RoleId" id="renameRoleId" />
-                    <div class="mb-3">
-                        <label for="renameRoleName" class="form-label">Role name</label>
-                        <input id="renameRoleName" name="RoleName" class="form-control" required maxlength="256" />
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100">Save changes</button>
-                </form>
-            </div>
+@if (Model.StatusMessage is string message) { <div class="alert alert-info" role="alert">@message</div> }
+<div class="row g-3 mb-4">
+    <div class="col-6"><div class="card card-body"><span class="text-muted">Teams</span><span class="h3 mb-0">@Model.Teams.Count</span></div></div>
+    <div class="col-6"><div class="card card-body"><span class="text-muted">URLs across teams</span><span class="h3 mb-0">@Model.TotalUrls</span></div></div>
+</div>
+<form asp-action="Dashboard" method="get" class="d-flex align-items-end flex-wrap gap-2 mb-4">
+    <div class="flex-grow-1"><label for="dashboardTeam" class="form-label">Team</label>
+        <select id="dashboardTeam" name="teamId" class="form-select">
+            @foreach (var team in Model.Teams) { <option value="@team.Id" selected="@(team.Id == selected?.Id)">@team.Name</option> }
+        </select>
+    </div>
+    <input type="hidden" name="urlSort" value="@Model.UrlSort" />
+    <input type="hidden" name="descending" value="@Model.Descending.ToString().ToLowerInvariant()" />
+    <button class="btn btn-primary" type="submit">View team</button>
+</form>
+@if (selected is not null)
+{
+    <div class="team-toolbar mb-4">
+        <div class="team-toolbar-tags"><partial name="_ProjectFilter" model="Model.Projects" /></div>
+        <div class="team-toolbar-name card px-4 py-2 text-center"><h2 class="h5 mb-0">@selected.Name</h2></div>
+        <div class="team-toolbar-actions d-flex gap-2">
+            <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#projectsModal">Projects</button>
+            <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#environmentsModal">Environments</button>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUrlModal" disabled="@(Model.Projects.Count == 0 || selected.Environments!.Count == 0)">Add URL</button>
         </div>
     </div>
-</div>
-
-<!-- Delete role modal -->
-<div class="modal fade" id="deleteRoleModal" tabindex="-1" aria-labelledby="deleteRoleLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="deleteRoleLabel">Delete role</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form asp-action="DeleteRole" method="post" id="deleteRoleForm">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="roleId" id="deleteRoleId" />
-                    <p class="mb-3">
-                        This will remove the <strong id="deleteRoleName"></strong> role and unassign it from all users.
-                    </p>
-                    <button type="submit" class="btn btn-danger w-100">Delete role</button>
-                </form>
-            </div>
+    <div class="alert alert-info" id="projectFilterEmpty" role="status" hidden>No URLs match the selected projects.</div>
+    <div class="card shadow-sm" id="urls">
+        <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <h2 class="h5 mb-0">@selected.Name URLs</h2>
         </div>
-    </div>
-</div>
-
-<!-- Assign project modal -->
-<div class="modal fade" id="assignProjectModal" tabindex="-1" aria-labelledby="assignProjectLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="assignProjectLabel">Assign project</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form asp-action="AssignProjectToRole" method="post" id="assignProjectForm">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="roleId" id="assignProjectRoleId" />
-                    <div class="mb-3">
-                        <label class="form-label">Role</label>
-                        <input type="text" class="form-control" id="assignProjectRoleName" readonly />
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label" for="assignProjectProjectId">Select project</label>
-                        <select class="form-select" id="assignProjectProjectId" name="projectId" required>
-                            <option value="" disabled selected>Choose project...</option>
-                            @foreach (var project in Model.Projects)
+        <div class="card-body">
+            @if (Model.Urls.Count == 0) { <p class="text-muted mb-0">No URLs in this team yet.</p> }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table align-middle text-center mb-0">
+                        <thead><tr>
+                            @foreach (var column in new[] { (Key: "description", Label: "Description"), (Key: "url", Label: "URL"), (Key: "environment", Label: "Environment"), (Key: "project", Label: "Projects") })
                             {
-                                <option value="@project.Id">@project.Name</option>
+                                var active = Model.UrlSort == column.Key;
+                                <th scope="col" aria-sort="@(active ? (Model.Descending ? "descending" : "ascending") : "none")">
+                                    <a asp-action="Dashboard" asp-route-teamId="@selected.Id" asp-route-urlSort="@column.Key" asp-route-descending="@(active && !Model.Descending)" asp-fragment="urls">
+                                        @column.Label @(active ? (Model.Descending ? "↓" : "↑") : "")
+                                    </a>
+                                </th>
                             }
-                        </select>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100">Assign project</button>
-                </form>
-            </div>
+                            <th scope="col">Actions</th>
+                        </tr></thead>
+                        <tbody>
+                            @foreach (var url in Model.Urls)
+                            {
+                                <tr data-project-entry data-projects="@JsonSerializer.Serialize(url.ProjectTags)">
+                                    <td>@url.Description</td><td class="text-break">@url.UrlValue</td><td>@url.Environment</td><td><partial name="_ProjectBadges" model="Model.Projects.Where(p => url.ProjectTags.Contains(p.Name))" /></td>
+                                    <td><div class="d-flex justify-content-center gap-1">
+                                        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editUrlModal"
+                                                data-url-id="@url.Id" data-url-team="@url.TeamId" data-url-value="@url.UrlValue" data-url-description="@url.Description"
+                                                data-url-environment="@url.Environment" data-url-projects="@JsonSerializer.Serialize(url.ProjectTags)">Edit</button>
+                                        <form asp-controller="Home" asp-action="DeleteUrl" method="post" onsubmit="return confirm('Delete this URL?')">
+                                            <input type="hidden" name="teamId" value="@selected.Id" /><input type="hidden" name="id" value="@url.Id" />
+                                            <input type="hidden" name="returnUrl" value="@(Context.Request.Path + Context.Request.QueryString)" />
+                                            <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
+                                        </form>
+                                    </div></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
         </div>
     </div>
-</div>
-
-@section Scripts {
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
-    <script>
-        (() => {
-            const canvas = document.getElementById('roleOverviewChart');
-            if (!canvas) {
-                return;
-            }
-
-            const labels = @Html.Raw(roleLabelsJson);
-            if (!labels.length) {
-                return;
-            }
-
-            const userDataset = @Html.Raw(userCountsJson);
-            const urlDataset = @Html.Raw(urlCountsJson);
-
-            new Chart(canvas, {
-                type: 'bar',
-                data: {
-                    labels,
-                    datasets: [
-                        {
-                            label: 'Users',
-                            data: userDataset,
-                            backgroundColor: 'rgba(13, 110, 253, 0.55)',
-                            borderColor: 'rgba(13, 110, 253, 1)',
-                            borderWidth: 1,
-                            borderRadius: 8
-                        },
-                        {
-                            label: 'URLs',
-                            data: urlDataset,
-                            backgroundColor: 'rgba(25, 135, 84, 0.55)',
-                            borderColor: 'rgba(25, 135, 84, 1)',
-                            borderWidth: 1,
-                            borderRadius: 8
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                precision: 0,
-                                stepSize: 1
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            position: 'bottom'
-                        }
-                    }
-                }
-            });
-        })();
-    </script>
-    <script>
-        const assignProjectModal = document.getElementById('assignProjectModal');
-        if (assignProjectModal) {
-            assignProjectModal.addEventListener('show.bs.modal', event => {
-                const button = event.relatedTarget;
-                if (!button) return;
-                const roleId = button.getAttribute('data-role-id');
-                const roleName = button.getAttribute('data-role-name');
-
-                const roleIdInput = document.getElementById('assignProjectRoleId');
-                const roleNameInput = document.getElementById('assignProjectRoleName');
-                const select = document.getElementById('assignProjectProjectId');
-
-                if (roleIdInput && roleNameInput && select) {
-                    roleIdInput.value = roleId ?? '';
-                    roleNameInput.value = roleName ?? '';
-                    select.selectedIndex = 0;
-                }
-            });
-        }
-
-        const renameRoleModal = document.getElementById('renameRoleModal');
-        if (renameRoleModal) {
-            renameRoleModal.addEventListener('show.bs.modal', event => {
-                const button = event.relatedTarget;
-                if (!button) return;
-                const roleId = button.getAttribute('data-role-id');
-                const roleName = button.getAttribute('data-role-name');
-
-                document.getElementById('renameRoleId').value = roleId ?? '';
-                document.getElementById('renameRoleName').value = roleName ?? '';
-            });
-        }
-
-        const deleteRoleModal = document.getElementById('deleteRoleModal');
-        if (deleteRoleModal) {
-            deleteRoleModal.addEventListener('show.bs.modal', event => {
-                const button = event.relatedTarget;
-                if (!button) return;
-                const roleId = button.getAttribute('data-role-id');
-                const roleName = button.getAttribute('data-role-name');
-
-                document.getElementById('deleteRoleId').value = roleId ?? '';
-                document.getElementById('deleteRoleName').textContent = roleName ?? '';
-            });
-        }
-    </script>
+    <partial name="_ManageProjectsModal" model="Model.Projects" />
+    <partial name="_ManageEnvironmentsModal" model="selected.Environments" />
+    <partial name="_AddUrlModal" model="Model.Projects" />
+    <partial name="_EditUrlModal" model="Model.Projects" />
 }
