@@ -1,16 +1,23 @@
 @model IEnumerable<string>
+@{
+    var environments = Model.ToList();
+}
 <div class="modal fade" id="environmentsModal" tabindex="-1" aria-labelledby="environmentsLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><div class="modal-content">
         <div class="modal-header">
             <h5 id="environmentsLabel" class="modal-title">Team environments</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-            <p class="text-muted small">Create the columns your team needs. Move an environment's URLs before deleting it.</p>
-            @foreach (var environment in Model)
+            <p class="text-muted small" id="environmentOrderHelp">Drag the grip beside an environment to move it, then save the order. You can also focus the grip and use the up/down arrow keys. Move an environment's URLs before deleting it.</p>
+            <div data-environment-order-list>
+            @for (var index = 0; index < environments.Count; index++)
             {
-                <div class="d-flex gap-2 mb-3">
-                    <form asp-controller="Home" asp-action="SaveEnvironment" method="post" class="d-flex flex-grow-1 gap-2">
+                var environment = environments[index];
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-3" data-environment-order-row>
+                    <input type="hidden" name="environmentNames" value="@environment" form="environmentsOrderForm" />
+                    <button type="button" class="btn btn-outline-secondary environment-drag-handle" data-environment-drag-handle disabled="@(environments.Count < 2)" aria-label="Reorder @environment" aria-describedby="environmentOrderHelp" title="Drag to reorder"><i class="bi bi-grip-vertical" aria-hidden="true"></i></button>
+                    <form asp-controller="Home" asp-action="SaveEnvironment" method="post" class="d-flex gap-2 environment-edit-form">
                         <input type="hidden" name="teamId" value="@ViewBag.TeamId" />
                         <input type="hidden" name="originalName" value="@environment" />
                         <input type="hidden" name="returnUrl" value="@(Context.Request.Path + Context.Request.QueryString)" />
@@ -24,6 +31,16 @@
                         <button type="submit" class="btn btn-outline-danger">Delete</button>
                     </form>
                 </div>
+            }
+            </div>
+            @if (environments.Count > 1)
+            {
+                <form id="environmentsOrderForm" asp-controller="Home" asp-action="ReorderEnvironments" method="post" class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                    <input type="hidden" name="teamId" value="@ViewBag.TeamId" />
+                    <input type="hidden" name="returnUrl" value="@(Context.Request.Path + Context.Request.QueryString)" />
+                    <button type="submit" class="btn btn-primary" data-environment-save-order disabled>Save order</button>
+                    <span class="text-muted small" role="status" data-environment-order-status></span>
+                </form>
             }
             <form asp-controller="Home" asp-action="SaveEnvironment" method="post" class="d-flex gap-2 border-top pt-3">
                 <input type="hidden" name="teamId" value="@ViewBag.TeamId" />

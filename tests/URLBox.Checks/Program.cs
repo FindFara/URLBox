@@ -69,6 +69,18 @@ try
     await store.SaveUrlAsync(custom.Id, null, " https://example.com/?q=a&b=c ", " Unicode توضیح: #yes ", "Stage", new[] { "Project: #1", "project: #1" });
     var saved = (await fresh.GetAsync(custom.Id))!;
     Check(saved.Urls.Single().UrlValue == "https://example.com/?q=a&b=c" && saved.Urls.Single().ProjectIds.Count == 1, "URL details trim and project selection deduplicates");
+    await store.ReorderEnvironmentsAsync(custom.Id, new[] { "Beta custom", "stage", "Dev" });
+    var reordered = (await new YamlTeamStore(directory).GetAsync(custom.Id))!;
+    Check(reordered.Environments!.SequenceEqual(new[] { "Beta custom", "Stage", "Dev" })
+        && reordered.Urls.Single().Environment == "Stage" && reordered.Urls.Single().UrlValue == saved.Urls.Single().UrlValue,
+        "Environment order persists across store instances without changing URLs or canonical names");
+    var beforeInvalidOrder = await File.ReadAllTextAsync(Path.Combine(directory, custom.Name + ".yaml"));
+    await Reject<InvalidOperationException>(() => store.ReorderEnvironmentsAsync(custom.Id, new[] { "Stage", "stage", "Dev" }));
+    await Reject<InvalidOperationException>(() => store.ReorderEnvironmentsAsync(custom.Id, new[] { "Stage", "Dev" }));
+    await Reject<InvalidOperationException>(() => store.ReorderEnvironmentsAsync(custom.Id, new[] { "Stage", "Dev", "Missing" }));
+    await Reject<InvalidOperationException>(() => store.ReorderEnvironmentsAsync(custom.Id, Array.Empty<string>()));
+    Check(beforeInvalidOrder == await File.ReadAllTextAsync(Path.Combine(directory, custom.Name + ".yaml")),
+        "Duplicate, stale, unknown and empty environment orders leave the team file unchanged");
     await store.SaveEnvironmentAsync(custom.Id, "QA تست", "Stage");
     Check((await fresh.GetAsync(custom.Id))!.Urls.Single().Environment == "QA تست", "Renaming an environment preserves its URLs and supports Unicode");
     await Reject<InvalidOperationException>(() => store.DeleteEnvironmentAsync(custom.Id, "QA تست"));
@@ -91,7 +103,14 @@ try
     Check(original == await File.ReadAllTextAsync(Path.Combine(directory, custom.Name + ".yaml")), "Invalid edits and project deletion do not change the file");
     var controller = ControllerFor(custom);
     Check(await controller.SaveEnvironment("Forbidden", teamId: demo.Id) is ForbidResult
-        && await controller.DeleteEnvironment("Dev", demo.Id) is ForbidResult, "Environment changes cannot cross team boundaries");
+        && await controller.DeleteEnvironment("Dev", demo.Id) is ForbidResult
+        && await controller.ReorderEnvironments(new() { "Prod", "Dev", "Stage" }, demo.Id) is ForbidResult, "Environment changes cannot cross team boundaries");
+    Check(await controller.ReorderEnvironments(new() { "Dev", "QA تست" }) is RedirectToActionResult
+        && (await fresh.GetAsync(custom.Id))!.Environments!.SequenceEqual(new[] { "Dev", "QA تست" }),
+        "Teams can save their own environment order");
+    Check(await ControllerFor(admin).ReorderEnvironments(new() { "Prod", "Dev", "Stage" }, demo.Id) is RedirectToActionResult
+        && (await fresh.GetAsync(demo.Id))!.Environments!.SequenceEqual(new[] { "Prod", "Dev", "Stage" }),
+        "Admins can reorder the selected team's environments");
     Check(await controller.SaveEnvironment("Preview") is RedirectToActionResult
         && (await fresh.GetAsync(custom.Id))!.Environments!.Contains("Preview"), "Teams can create their own environments");
     Check(await ControllerFor(admin).SaveEnvironment("Admin Preview", teamId: demo.Id) is RedirectToActionResult

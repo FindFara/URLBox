@@ -73,6 +73,11 @@ public class HomeController(ITeamStore store) : Controller
     public Task<IActionResult> DeleteEnvironment(string environmentName, string? teamId = null, string? returnUrl = null) =>
         Change(teamId, returnUrl, target => store.DeleteEnvironmentAsync(target, environmentName), "Environment deleted.");
 
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public Task<IActionResult> ReorderEnvironments(List<string> environmentNames, string? teamId = null, string? returnUrl = null) =>
+        Change(teamId, returnUrl, target => store.ReorderEnvironmentsAsync(target, environmentNames ?? new()), "Environment order saved.");
+
     private async Task<IActionResult> Change(string? teamId, string? returnUrl, Func<string, Task> operation, string message)
     {
         var current = User.FindFirstValue(ClaimTypes.NameIdentifier);

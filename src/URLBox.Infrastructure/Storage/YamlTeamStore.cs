@@ -185,6 +185,17 @@ public sealed class YamlTeamStore : ITeamStore
         }
     });
 
+    public Task ReorderEnvironmentsAsync(string teamId, IEnumerable<string> environmentNames) => ChangeAsync(teamId, team =>
+    {
+        var names = environmentNames.ToList();
+        var environments = team.Environments!;
+        if (names.Count != environments.Count
+            || names.Distinct(StringComparer.OrdinalIgnoreCase).Count() != names.Count
+            || names.Any(name => !environments.Contains(name, StringComparer.OrdinalIgnoreCase)))
+            throw new InvalidOperationException("The environments have changed. Reload the page and try again.");
+        team.Environments = names.Select(name => environments.Single(e => e.Equals(name, StringComparison.OrdinalIgnoreCase))).ToList();
+    });
+
     public Task DeleteEnvironmentAsync(string teamId, string name) => ChangeAsync(teamId, team =>
     {
         var environment = team.Environments!.SingleOrDefault(e => e.Equals(name, StringComparison.OrdinalIgnoreCase))

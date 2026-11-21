@@ -280,6 +280,17 @@ html[data-bs-theme="dark"] .offcanvas {
 }
 
 .login-card { max-width: 440px; }
+.environment-edit-form { flex: 1 1 220px; min-width: 0; }
+#environmentsModal .environment-drag-handle { cursor: grab; touch-action: none; }
+#environmentsModal .environment-drag-handle:active { cursor: grabbing; }
+[data-environment-order-list].is-dragging,
+[data-environment-order-list].is-dragging * { cursor: grabbing; user-select: none; }
+[data-environment-order-row].is-dragging {
+    background-color: var(--bs-primary-bg-subtle);
+    outline: 2px dashed var(--bs-primary);
+    outline-offset: 3px;
+    border-radius: 4px;
+}
 
 .team-toolbar {
     display: grid;

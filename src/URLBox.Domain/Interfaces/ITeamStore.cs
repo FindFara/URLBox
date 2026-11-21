@@ -14,6 +14,7 @@ public interface ITeamStore
     Task SaveUrlAsync(string teamId, int? id, string url, string description, string environment, IEnumerable<string> projects);
     Task SaveEnvironmentAsync(string teamId, string name, string? originalName = null);
     Task DeleteEnvironmentAsync(string teamId, string name);
+    Task ReorderEnvironmentsAsync(string teamId, IEnumerable<string> environmentNames);
     Task DeleteUrlAsync(string teamId, int id);
     Task SaveProjectAsync(string teamId, int? id, string name, string? color = null);
     Task DeleteProjectAsync(string teamId, int id);
