@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -162,6 +163,84 @@ try
         && File.Exists(Path.Combine(legacyDirectory, "teams.yaml")) && File.Exists(Path.Combine(legacyDirectory, "Profit.yaml"))
         && !File.Exists(legacyPath), "Previous YAML layout converts without losing URLs");
     Check(await legacyStore.AuthenticateAsync("Profit", "profit1234") is not null, "YAML conversion retains team credentials");
+    var backupTeam = await store.CreateAsync("Backup Test", "backup1234");
+    await store.SaveEnvironmentAsync(backupTeam.Id, "Prod");
+    await store.SaveEnvironmentAsync(backupTeam.Id, "Dev");
+    await store.SaveProjectAsync(backupTeam.Id, null, "Backup project", "#123456");
+    await store.SaveUrlAsync(backupTeam.Id, null, "https://backup.example.com", "Backup URL", "Prod", new[] { "Backup project" });
+    var teamBackupController = BackupControllerFor(backupTeam);
+    var teamDownload = (FileContentResult)await teamBackupController.Download();
+    var teamBackupYaml = System.Text.Encoding.UTF8.GetString(teamDownload.FileContents);
+    Check(teamDownload.ContentType == "application/yaml" && teamDownload.FileDownloadName.EndsWith(".yaml")
+        && teamBackupYaml.Contains(backupTeam.Id) && !teamBackupYaml.Contains(demo.Id)
+        && !teamBackupYaml.Contains("passwordHash") && !teamBackupYaml.Contains("sessionVersion"),
+        "Team download includes only its own YAML data without account credentials");
+    await store.UpdateAsync(backupTeam.Id, "Backup Renamed", null, false);
+    await store.SaveEnvironmentAsync(backupTeam.Id, "Preview");
+    await store.SaveProjectAsync(backupTeam.Id, 1, "Changed", "#ABCDEF");
+    var registryBeforeRestore = await File.ReadAllTextAsync(Path.Combine(directory, "teams.yaml"));
+    var otherTeamBeforeRestore = await File.ReadAllTextAsync(Path.Combine(directory, demo.Name + ".yaml"));
+    Check(await teamBackupController.Restore(Upload(teamBackupYaml), true) is RedirectToActionResult,
+        "Signed-in teams can upload and restore their own backup");
+    var restoredTeam = (await fresh.GetAsync(backupTeam.Id))!;
+    Check(restoredTeam.Name == "Backup Renamed" && restoredTeam.Environments!.SequenceEqual(new[] { "Prod", "Dev" })
+        && restoredTeam.Projects.Single().Name == "Backup project" && restoredTeam.Projects.Single().Color == "#123456"
+        && restoredTeam.Urls.Single().UrlValue == "https://backup.example.com"
+        && await store.AuthenticateAsync("Backup Renamed", "backup1234") is not null,
+        "Team restore recovers data and order while preserving the current team name and password");
+    Check(registryBeforeRestore == await File.ReadAllTextAsync(Path.Combine(directory, "teams.yaml"))
+        && otherTeamBeforeRestore == await File.ReadAllTextAsync(Path.Combine(directory, demo.Name + ".yaml")),
+        "Team restore does not change the registry or other teams");
+    var beforeRejectedRestores = await File.ReadAllTextAsync(Path.Combine(directory, "Backup Renamed.yaml"));
+    foreach (var invalidBackup in new[] {
+        System.Text.Encoding.UTF8.GetString(await store.CreateTeamBackupAsync(demo.Id)),
+        "teamId: [invalid YAML",
+        teamBackupYaml + "\npasswordHash: injected\n",
+        teamBackupYaml.Replace("https://backup.example.com", "javascript:alert(1)"),
+        teamBackupYaml.Replace("environment: Prod", "environment: Missing"),
+        "" })
+        await Reject<InvalidOperationException>(() => store.RestoreTeamBackupAsync(backupTeam.Id, invalidBackup));
+    Check(beforeRejectedRestores == await File.ReadAllTextAsync(Path.Combine(directory, "Backup Renamed.yaml")),
+        "Foreign, malformed, unsafe and empty backups are rejected without changing stored data");
+    var rejectedController = BackupControllerFor(backupTeam);
+    await rejectedController.Restore(Upload(teamBackupYaml), false);
+    Check(rejectedController.TempData.ContainsKey("RestoreError"), "Restore requires confirmation before replacing team data");
+    await rejectedController.Restore(Upload(teamBackupYaml, "backup.zip"), true);
+    Check(rejectedController.TempData.ContainsKey("RestoreError")
+        && beforeRejectedRestores == await File.ReadAllTextAsync(Path.Combine(directory, "Backup Renamed.yaml")),
+        "Unsupported uploads leave the team's data intact");
+    var anonymousBackup = new TeamBackupController(store) { ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() } };
+    Check(await anonymousBackup.Download() is ForbidResult && await anonymousBackup.Restore(null, true) is ForbidResult,
+        "Backup and restore require a signed-in team");
+    await store.DeleteAsync(backupTeam.Id);
+    var backupResult = (FileContentResult)await new AdminController(store).Backup();
+    Check(backupResult.ContentType == "application/zip" && backupResult.FileDownloadName.StartsWith("URLBox-backup-")
+        && backupResult.FileDownloadName.EndsWith(".zip"), "Backup downloads as a dated ZIP attachment");
+    using (var backup = new ZipArchive(new MemoryStream(backupResult.FileContents), ZipArchiveMode.Read))
+    {
+        var expectedFiles = Directory.GetFiles(directory, "*.yaml").Select(Path.GetFileName).OrderBy(n => n).ToList();
+        Check(backup.Entries.Select(e => e.FullName).OrderBy(n => n).SequenceEqual(expectedFiles),
+            "Backup contains all root YAML files, excluding locks and subdirectories");
+        foreach (var entry in backup.Entries)
+        {
+            using var contents = new MemoryStream();
+            await using var source = entry.Open();
+            await source.CopyToAsync(contents);
+            Check(contents.ToArray().SequenceEqual(await File.ReadAllBytesAsync(Path.Combine(directory, entry.FullName))),
+                "Backup preserves the exact bytes of " + entry.FullName);
+        }
+        var restoreDirectory = Path.Combine(directory, "restored");
+        backup.ExtractToDirectory(restoreDirectory);
+        var restoredStore = new YamlTeamStore(restoreDirectory);
+        var restoredDemo = await restoredStore.AuthenticateAsync("Profit", "profit1234");
+        var currentDemo = (await store.GetAsync(demo.Id))!;
+        Check(restoredDemo is not null && restoredDemo.Environments!.SequenceEqual(currentDemo.Environments!)
+            && restoredDemo.Urls.Count == currentDemo.Urls.Count && restoredDemo.Projects.Count == currentDemo.Projects.Count,
+            "Extracted backup restores team login, environments, URLs and projects");
+    }
+    Check(typeof(AdminController).GetCustomAttributes(typeof(Microsoft.AspNetCore.Authorization.AuthorizeAttribute), true)
+        .Cast<Microsoft.AspNetCore.Authorization.AuthorizeAttribute>().Any(a => a.Roles == "Administrator"),
+        "Backup controller requires the administrator role");
     var badPath = Path.Combine(directory, demo.Name + ".yaml");
     await File.WriteAllTextAsync(badPath, "name: [invalid YAML");
     await Reject<InvalidDataException>(() => store.SaveProjectAsync(demo.Id, null, "Cannot overwrite"));
@@ -181,6 +260,20 @@ try
             ControllerContext = new ControllerContext { HttpContext = context },
             TempData = new TempDataDictionary(context, new MemoryTempDataProvider())
         };
+    }
+    TeamBackupController BackupControllerFor(Team team)
+    {
+        var context = new DefaultHttpContext { User = TeamCookieEvents.PrincipalFor(team) };
+        return new TeamBackupController(store)
+        {
+            ControllerContext = new ControllerContext { HttpContext = context },
+            TempData = new TempDataDictionary(context, new MemoryTempDataProvider())
+        };
+    }
+    IFormFile Upload(string content, string name = "backup.yaml")
+    {
+        var bytes = System.Text.Encoding.UTF8.GetBytes(content);
+        return new FormFile(new MemoryStream(bytes), 0, bytes.Length, "backupFile", name);
     }
     void Check(bool value, string message)
     {

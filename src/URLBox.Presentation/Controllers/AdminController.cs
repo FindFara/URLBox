@@ -13,6 +13,11 @@ namespace URLBox.Presentation.Controllers;
 public class AdminController(ITeamStore store) : Controller
 {
     [HttpGet]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+    public async Task<IActionResult> Backup() => File(await store.CreateBackupAsync(), "application/zip",
+        $"URLBox-backup-{DateTime.UtcNow:yyyyMMdd-HHmmss}.zip");
+
+    [HttpGet]
     public async Task<IActionResult> Dashboard(string? teamId = null, string urlSort = "description", bool descending = false)
     {
         var teams = await store.GetTeamsAsync();

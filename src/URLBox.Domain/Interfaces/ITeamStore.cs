@@ -5,6 +5,9 @@ namespace URLBox.Domain.Interfaces;
 public interface ITeamStore
 {
     Task<List<Team>> GetTeamsAsync();
+    Task<byte[]> CreateBackupAsync();
+    Task<byte[]> CreateTeamBackupAsync(string teamId);
+    Task RestoreTeamBackupAsync(string teamId, string yaml);
     Task<Team?> GetAsync(string id);
     Task<Team?> AuthenticateAsync(string name, string password);
     Task EnsureAdminAsync(string name, string password, bool seedSampleData = false);

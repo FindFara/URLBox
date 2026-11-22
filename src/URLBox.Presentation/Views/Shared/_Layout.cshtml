@@ -50,6 +50,12 @@
         <button id="themeToggleSidebar" type="button" class="btn btn-outline-secondary btn-icon" data-bs-placement="right" title="Dark mode">
             <i id="themeIconSidebar" class="bi bi-moon-fill"></i>
         </button>
+        @if (isAuthenticated)
+        {
+            <button id="teamBackupDesktop" type="button" class="btn btn-outline-secondary btn-icon" aria-expanded="false" aria-controls="teamBackupSidebar" aria-label="Team backup and restore">
+                <i class="bi bi-database" aria-hidden="true"></i>
+            </button>
+        }
         <a href="https://github.com/FindFara/URLBox" target="_blank" class="btn btn-dark btn-icon" data-bs-placement="right" title="GitHub repo">
             <i class="bi bi-github"></i>
         </a>
@@ -85,6 +91,18 @@
             <button id="themeToggleMobile" type="button" class="btn btn-outline-secondary w-100">
                 <i id="themeIconMobile" class="bi bi-moon-fill me-1"></i> Dark mode
             </button>
+            @if (isAuthenticated)
+            {
+                <button type="button" class="btn btn-outline-secondary w-100" data-bs-toggle="collapse" data-bs-target="#teamBackupMobile" aria-expanded="false" aria-controls="teamBackupMobile">
+                    <i class="bi bi-database me-1" aria-hidden="true"></i> Backup &amp; Restore
+                </button>
+                <div class="collapse" id="teamBackupMobile">
+                    <div class="d-grid gap-2">
+                        <a asp-controller="TeamBackup" asp-action="Download" class="btn btn-outline-primary"><i class="bi bi-download me-1" aria-hidden="true"></i> Backup</a>
+                        <button type="button" class="btn btn-outline-secondary" data-team-restore><i class="bi bi-upload me-1" aria-hidden="true"></i> Restore</button>
+                    </div>
+                </div>
+            }
             <a href="https://github.com/FindFara/URLBox" target="_blank" class="btn btn-dark w-100">
                 <i class="bi bi-github me-1"></i> GitHub
             </a>
@@ -103,9 +121,22 @@
     </div>
     }
 
+    @if (isAuthenticated)
+    {
+        <div id="teamBackupSidebar" class="flex-column gap-2" aria-labelledby="teamBackupDesktop">
+            <a asp-controller="TeamBackup" asp-action="Download" class="btn btn-outline-primary btn-sm"><i class="bi bi-download me-1" aria-hidden="true"></i> Backup</a>
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-team-restore><i class="bi bi-upload me-1" aria-hidden="true"></i> Restore</button>
+        </div>
+    }
+
     <main class="container-fluid py-4">
         @RenderBody()
     </main>
+
+    @if (isAuthenticated)
+    {
+        <partial name="_RestoreTeamBackupModal" />
+    }
 
     <script src="~/lib/bootstrap/5.3.3/js/bootstrap.bundle.min.js" asp-append-version="true"></script>
     <script>
@@ -150,26 +181,35 @@
         })();
 
         (function () {
-            const adminBtn = document.getElementById('adminToggleDesktop');
-            const adminSidebar = document.getElementById('adminSidebar');
-            if (adminBtn && adminSidebar) {
+            for (const [buttonId, panelId] of [['adminToggleDesktop', 'adminSidebar'], ['teamBackupDesktop', 'teamBackupSidebar']]) {
+                const adminBtn = document.getElementById(buttonId);
+                const adminSidebar = document.getElementById(panelId);
+                if (!adminBtn || !adminSidebar) continue;
+                const hide = () => {
+                    adminSidebar.classList.remove('show');
+                    adminBtn.setAttribute('aria-expanded', 'false');
+                };
                 adminBtn.addEventListener('mouseenter', () => {
                     const rect = adminBtn.getBoundingClientRect();
                     adminSidebar.style.top = rect.top + 'px';
                     adminSidebar.style.left = rect.right + 'px';
                     adminSidebar.classList.add('show');
+                    adminBtn.setAttribute('aria-expanded', 'true');
                 });
                 adminBtn.addEventListener('mouseleave', () => {
                     setTimeout(() => {
                         if (!adminSidebar.matches(':hover') && !adminBtn.matches(':hover')) {
-                            adminSidebar.classList.remove('show');
+                            hide();
                         }
                     }, 100);
                 });
                 adminSidebar.addEventListener('mouseleave', () => {
                     if (!adminBtn.matches(':hover')) {
-                        adminSidebar.classList.remove('show');
+                        hide();
                     }
+                });
+                adminSidebar.addEventListener('click', event => {
+                    if (event.target.closest('a, button')) hide();
                 });
             }
         })();

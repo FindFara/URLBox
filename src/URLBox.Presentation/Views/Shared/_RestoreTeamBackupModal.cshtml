@@ -1,0 +1,30 @@
+@{
+    var restoreError = TempData["RestoreError"] as string;
+}
+<div class="modal fade" id="restoreTeamBackupModal" tabindex="-1" aria-labelledby="restoreTeamBackupLabel" aria-hidden="true" data-team-restore-modal data-show-on-load="@(restoreError is not null ? "true" : "false")">
+    <div class="modal-dialog modal-dialog-centered">
+        <form asp-controller="TeamBackup" asp-action="Restore" method="post" enctype="multipart/form-data" class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="restoreTeamBackupLabel">Restore team backup</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Restore a YAML backup for your signed-in team. This replaces your current URLs, projects and environments. Your team's name and password stay the same.</p>
+                @if (restoreError is not null)
+                {
+                    <div class="alert alert-danger" role="alert">@restoreError</div>
+                }
+                <label for="teamBackupFile" class="form-label">Team YAML backup (up to 5 MB)</label>
+                <input id="teamBackupFile" name="backupFile" type="file" class="form-control" accept=".yaml,.yml" required />
+                <div class="form-check mt-3">
+                    <input id="replaceTeamData" name="replaceExistingData" value="true" type="checkbox" class="form-check-input" required />
+                    <label for="replaceTeamData" class="form-check-label">Replace my team's current data with this backup.</label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary">Restore</button>
+            </div>
+        </form>
+    </div>
+</div>

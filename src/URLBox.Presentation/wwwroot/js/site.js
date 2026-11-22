@@ -1,4 +1,19 @@
 (() => {
+    const modal = document.querySelector('[data-team-restore-modal]');
+    if (!modal) return;
+    const show = () => bootstrap.Modal.getOrCreateInstance(modal).show();
+    document.addEventListener('click', event => {
+        if (!event.target.closest('[data-team-restore]')) return;
+        const menu = document.querySelector('#leftMenu.show');
+        if (menu) {
+            menu.addEventListener('hidden.bs.offcanvas', show, { once: true });
+            bootstrap.Offcanvas.getOrCreateInstance(menu).hide();
+        } else show();
+    });
+    if (modal.dataset.showOnLoad === 'true') show();
+})();
+
+(() => {
     const list = document.querySelector('[data-environment-order-list]');
     const save = document.querySelector('[data-environment-save-order]');
     const status = document.querySelector('[data-environment-order-status]');

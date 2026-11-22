@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Identity;
@@ -26,6 +27,57 @@ public sealed class YamlTeamStore : ITeamStore
     }
 
     public Task<List<Team>> GetTeamsAsync() => LockedAsync(ReadAllAsync);
+
+    public Task<byte[]> CreateTeamBackupAsync(string teamId) => LockedAsync(async () =>
+    {
+        var team = RequireTeam(await ReadAllAsync(), teamId);
+        return Encoding.UTF8.GetBytes(_serializer.Serialize(DataFor(team)));
+    });
+
+    public Task RestoreTeamBackupAsync(string teamId, string yaml) => LockedAsync(async () =>
+    {
+        var team = RequireTeam(await ReadAllAsync(), teamId);
+        TeamData data;
+        try
+        {
+            data = _deserializer.Deserialize<TeamData>(yaml) ?? throw new InvalidDataException("Empty backup.");
+            if (data.TeamId != team.Id)
+                throw new InvalidOperationException("Choose a backup belonging to your team.");
+            team.NextProjectId = data.NextProjectId;
+            team.NextUrlId = data.NextUrlId;
+            team.Projects = data.Projects;
+            team.Urls = data.Urls;
+            team.Environments = data.Environments;
+            ValidateDocument(team);
+            if (team.NextProjectId < 1 || team.NextUrlId < 1
+                || team.Projects.Any(p => p.Id == int.MaxValue)
+                || team.Urls.Any(u => u.Id == int.MaxValue
+                    || !Uri.TryCreate(u.UrlValue, UriKind.Absolute, out var address)
+                    || (address.Scheme != "http" && address.Scheme != "https")))
+                throw new InvalidDataException("Invalid backup data.");
+        }
+        catch (Exception ex) when (ex is YamlException or InvalidDataException)
+        {
+            throw new InvalidOperationException("This file is not a valid team YAML backup. Your data has not been changed.", ex);
+        }
+        await WriteAsync(team);
+    });
+
+    public Task<byte[]> CreateBackupAsync() => LockedAsync(async () =>
+    {
+        using var output = new MemoryStream();
+        using (var archive = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true))
+        {
+            foreach (var path in Directory.GetFiles(_directory, "*.yaml").OrderBy(Path.GetFileName, StringComparer.Ordinal))
+            {
+                var entry = archive.CreateEntry(Path.GetFileName(path), CompressionLevel.Optimal);
+                await using var source = File.OpenRead(path);
+                await using var destination = entry.Open();
+                await source.CopyToAsync(destination);
+            }
+        }
+        return output.ToArray();
+    });
 
     public Task<Team?> GetAsync(string id) => LockedAsync(async () =>
     {

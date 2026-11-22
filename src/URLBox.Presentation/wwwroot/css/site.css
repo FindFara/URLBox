@@ -255,7 +255,8 @@ html[data-bs-theme="dark"] .offcanvas {
 }
 
 /* Admin quick menu panel for desktop */
-#adminSidebar {
+#adminSidebar,
+#teamBackupSidebar {
     position: fixed;
     /* top and left will be set dynamically via JavaScript based on button position */
     width: 170px;
@@ -268,13 +269,15 @@ html[data-bs-theme="dark"] .offcanvas {
     display: none;
 }
 
-    #adminSidebar.show {
+    #adminSidebar.show,
+    #teamBackupSidebar.show {
         display: flex;
         flex-direction: column;
     }
 
 @media (max-width: 991.98px) {
-    #adminSidebar {
+    #adminSidebar,
+    #teamBackupSidebar {
         display: none !important;
     }
 }
